@@ -1,0 +1,21 @@
+[package]
+name = "parse-pattern"
+version = "0.1.0"
+authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+syn = "0.15"
+quote = "0.6"
+
+[syn]
+features = ["full", "extra-traits"]
+
+[lib]
+name = "mylib"
+path = "src/lib.rs"
+proc-macro = true
+
+[[bin]]
+name = "mybin"
+path = "src/main.rs"
