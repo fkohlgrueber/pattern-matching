@@ -36,7 +36,7 @@ _                | DONE
 <expr>           | 
 <tt> repeat      | DONE
 <tt> | <tt>      | DONE
-<tt> # <ident>   | 
+<tt> # <ident>   | DONE
 <tt> ; <tt>      | DONE
 (...)            | DONE
 
@@ -45,7 +45,7 @@ enum Expr {
     Node(Ident, Vec<Expr>),
     Repeat(Box<Expr>, Repeat),
     Alt(Box<Expr>, Box<Expr>),
-    Named(Box<Expr>, String),
+    Named(Box<Expr>, Ident),
     Seq(Box<Expr>, Box<Expr>),
     Any,
     Empty,

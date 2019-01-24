@@ -36,6 +36,7 @@ enum Expr {
     Alt(Box<Expr>, Box<Expr>),
     Seq(Box<Expr>, Box<Expr>),
     Repeat(Box<Expr>, RepeatKind),
+    Named(Box<Expr>, Ident),
     Any,
     Empty
 }
@@ -64,7 +65,8 @@ impl fmt::Display for Expr {
                     f.as_ref().map_or("".to_string(), |f| format!("{}", f.value())),
                     t.as_ref().map_or("".to_string(), |t| format!(",{}", t.value()))
                 )
-            })
+            }),
+            Expr::Named(e, i) => write!(f, "{}#{}", e, i)
         }
     }
 }
@@ -128,6 +130,11 @@ fn trailer_expr(input: ParseStream) -> Result<Expr> {
             Some(content.parse::<syn::LitInt>()?)
         };
         e = Expr::Repeat(Box::new(e), RepeatKind::Range(f, t));
+    }
+
+    if input.peek(Token![#]) {
+        input.parse::<Token![#]>()?;
+        e = Expr::Named(Box::new(e), input.parse()?);
     }
     //let mut e = trailer_helper(input, atom)?;
 
@@ -211,7 +218,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let res = syn::parse_str::<Expr>("Foo(a | _, x){,2} ; () | c?");
+        let res = syn::parse_str::<Expr>("Foo(a | _, x){,2}#xy ; ()#abc | c?");
 
         match res {
             Ok(i) => println!("{}", i),
