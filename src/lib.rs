@@ -1,5 +1,25 @@
 
+extern crate proc_macro;
+use proc_macro::TokenStream;
+
+use quote::quote;
+
 mod parse;
+
+#[proc_macro]
+pub fn pattern(item: TokenStream) -> TokenStream {
+    let _input = syn::parse_macro_input!(item as parse::Expr);
+    // ...
+
+    quote!(
+        static x: i32 = 0;
+        /*
+            fn my_print() {
+                println!("test")
+            }
+        */
+    ).into()
+}
 
 #[cfg(test)]
 mod tests {
