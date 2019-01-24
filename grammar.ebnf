@@ -40,6 +40,17 @@ _                | DONE
 <tt> ; <tt>      | DONE
 (...)            | DONE
 
+
+enum Pattern {
+    Ts(Box<dyn PatternTreeNode>),
+    Repeat(Box<Pattern>, Repeat),
+    Alt(Box<Pattern>, Box<Pattern>),
+    Named(Box<Pattern>, String),
+    Seq(Box<Pattern>, Box<Pattern>),
+    Any,
+    Empty,
+}
+
 *)
 
 

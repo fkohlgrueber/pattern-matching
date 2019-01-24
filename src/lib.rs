@@ -12,15 +12,6 @@ enum BinOp {
     Seq
 }
 
-impl fmt::Display for BinOp {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            BinOp::Or => write!(f, " | "),
-            BinOp::Seq => write!(f, " ")
-        }
-    }
-}
-
 #[derive(Copy, Clone, PartialEq, PartialOrd)]
 enum Precedence {
     Any,
@@ -39,8 +30,9 @@ impl Precedence {
 
 #[derive(Debug)]
 enum Expr {
-    Binary(BinOp, Box<Expr>, Box<Expr>),
     Ident(Ident),
+    Alt(Box<Expr>, Box<Expr>),
+    Seq(Box<Expr>, Box<Expr>),
     Any,
     Empty
 }
@@ -49,7 +41,8 @@ impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Expr::Ident(i) => write!(f, "{}", i),
-            Expr::Binary(op, left, right) => write!(f, "({}{}{})", left, op, right),
+            Expr::Alt(left, right) => write!(f, "({} | {})", left, right),
+            Expr::Seq(left, right) => write!(f, "({}; {})", left, right),
             Expr::Any => write!(f, "_"),
             Expr::Empty => write!(f, "()")
         }
@@ -137,7 +130,10 @@ fn parse_expr(
                     break;
                 }
             }
-            lhs = Expr::Binary(op, Box::new(lhs), Box::new(rhs));
+            lhs = match op {
+                BinOp::Seq => Expr::Seq(Box::new(lhs), Box::new(rhs)),
+                BinOp::Or => Expr::Alt(Box::new(lhs), Box::new(rhs))
+            }
         } else {
             break;
         }
