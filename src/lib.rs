@@ -37,7 +37,7 @@ enum Expr {
     Seq(Box<Expr>, Box<Expr>),
     Repeat(Box<Expr>, RepeatKind),
     Named(Box<Expr>, Ident),
-    Expr(syn::Expr),
+    Expr(syn::Lit),
     Any,
     Empty
 }
@@ -170,7 +170,7 @@ fn atom_expr(input: ParseStream) -> Result<Expr> {
         let first: Expr = content.parse()?;
         Ok(first)
     } else {
-        match input.parse::<syn::Expr>() {
+        match input.parse::<syn::Lit>() {
             Ok(e) => Ok(Expr::Expr(e)),
             Err(_) => Err(input.error("unsupported expression; enable syn's features=[\"full\"]"))
         }
@@ -225,7 +225,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let res = syn::parse_str::<Expr>("Foo(x, 1* (z)){,2}#xy Foo() | x y");
+        let res = syn::parse_str::<Expr>("Foo(x, 1+2 * (z)){,2}#xy Foo() | x y");
 
         match res {
             Ok(i) => println!("{}", i),
