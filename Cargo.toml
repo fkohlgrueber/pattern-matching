@@ -15,7 +15,3 @@ features = ["full", "extra-traits"]
 name = "mylib"
 path = "src/lib.rs"
 proc-macro = true
-
-[[bin]]
-name = "mybin"
-path = "src/main.rs"
