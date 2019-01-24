@@ -32,21 +32,21 @@ Prefixes:
 
 _                | DONE
 ()               | DONE
-<ident> (...)    | 
+<ident> (...)    | DONE
 <expr>           | 
-<tt> repeat      | 
+<tt> repeat      | DONE
 <tt> | <tt>      | DONE
 <tt> # <ident>   | 
 <tt> ; <tt>      | DONE
 (...)            | DONE
 
 
-enum Pattern {
-    Ts(Box<dyn PatternTreeNode>),
-    Repeat(Box<Pattern>, Repeat),
-    Alt(Box<Pattern>, Box<Pattern>),
-    Named(Box<Pattern>, String),
-    Seq(Box<Pattern>, Box<Pattern>),
+enum Expr {
+    Node(Ident, Vec<Expr>),
+    Repeat(Box<Expr>, Repeat),
+    Alt(Box<Expr>, Box<Expr>),
+    Named(Box<Expr>, String),
+    Seq(Box<Expr>, Box<Expr>),
     Any,
     Empty,
 }

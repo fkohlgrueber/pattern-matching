@@ -2,9 +2,10 @@
 use syn::{Ident, Result, Token};
 use syn::parse::{Parse, ParseStream};
 use syn::token;
-use syn::parenthesized;
+use syn::{parenthesized, braced};
 use syn;
 use std::fmt;
+use syn::punctuated::Punctuated;
 
 #[derive(Debug)]
 enum BinOp {
@@ -28,23 +29,42 @@ impl Precedence {
     }
 }
 
-#[derive(Debug)]
+
 enum Expr {
+    Node(Ident, Vec<Expr>),
     Ident(Ident),
     Alt(Box<Expr>, Box<Expr>),
     Seq(Box<Expr>, Box<Expr>),
+    Repeat(Box<Expr>, RepeatKind),
     Any,
     Empty
+}
+
+enum RepeatKind {
+    Any,
+    Plus,
+    Optional,
+    Range(Option<syn::LitInt>, Option<syn::LitInt>)
 }
 
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
+            Expr::Node(i, args) => write!(f, "{}({})", i, args.iter().map(|x| format!("{}", x).to_string()).collect::<Vec<_>>().join(", ")),
             Expr::Ident(i) => write!(f, "{}", i),
             Expr::Alt(left, right) => write!(f, "({} | {})", left, right),
             Expr::Seq(left, right) => write!(f, "({}; {})", left, right),
             Expr::Any => write!(f, "_"),
-            Expr::Empty => write!(f, "()")
+            Expr::Empty => write!(f, "()"),
+            Expr::Repeat(e, r) => write!(f, "{}{}", e, match r {
+                RepeatKind::Any => "*".to_string(),
+                RepeatKind::Plus => "+".to_string(),
+                RepeatKind::Optional => "?".to_string(),
+                RepeatKind::Range(f, t) => format!("{{{}{}}}", 
+                    f.as_ref().map_or("".to_string(), |f| format!("{}", f.value())),
+                    t.as_ref().map_or("".to_string(), |t| format!(",{}", t.value()))
+                )
+            })
         }
     }
 }
@@ -82,16 +102,52 @@ fn trailer_expr(input: ParseStream) -> Result<Expr> {
         return input.call(expr_group).map(Expr::Group);
     }*/
 
-    let atom = atom_expr(input)?;
+    let mut e = atom_expr(input)?;
+    
+    if input.peek(Token![*]) {
+        input.parse::<Token![*]>()?;
+        e = Expr::Repeat(Box::new(e), RepeatKind::Any);
+    } else if input.peek(Token![+]) {
+        input.parse::<Token![+]>()?;
+        e = Expr::Repeat(Box::new(e), RepeatKind::Plus);
+    } else if input.peek(Token![?]) {
+        input.parse::<Token![?]>()?;
+        e = Expr::Repeat(Box::new(e), RepeatKind::Optional);
+    } else if input.peek(token::Brace) {
+        let content;
+        braced!(content in input);
+        let f = if content.peek(Token![,]) {
+            None
+        } else {
+            Some(content.parse::<syn::LitInt>()?)
+        };
+        let t = if content.is_empty() {
+            None
+        } else {
+            content.parse::<Token![,]>()?;
+            Some(content.parse::<syn::LitInt>()?)
+        };
+        e = Expr::Repeat(Box::new(e), RepeatKind::Range(f, t));
+    }
     //let mut e = trailer_helper(input, atom)?;
 
     //Ok(e)
-    Ok(atom)
+    Ok(e)
 }
 
 fn atom_expr(input: ParseStream) -> Result<Expr> {
     if input.peek(Token![_]){
         input.parse::<Token![_]>().map(|_| Expr::Any)
+    } else if input.peek(Ident) && input.peek2(token::Paren) {
+        let id = input.parse::<Ident>()?;
+        let content;
+        parenthesized!(content in input);
+        let vals: Punctuated<Expr, Token![,]>;
+        vals = content.parse_terminated(Expr::parse)?;
+        Ok(Expr::Node(
+            id,
+            vals.into_iter().collect()
+        ))
     } else if input.peek(Ident) {
         input.parse().map(Expr::Ident)
     } else if input.peek(token::Paren) {
@@ -155,7 +211,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let res = syn::parse_str::<Expr>("(a | _) ; () | c");
+        let res = syn::parse_str::<Expr>("Foo(a | _, x){,2} ; () | c?");
 
         match res {
             Ok(i) => println!("{}", i),
