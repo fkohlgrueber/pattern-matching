@@ -33,7 +33,7 @@ Prefixes:
 _                | DONE
 ()               | DONE
 <ident> (...)    | DONE
-<expr>           | 
+<expr>           | DONE
 <tt> repeat      | DONE
 <tt> | <tt>      | DONE
 <tt> # <ident>   | DONE

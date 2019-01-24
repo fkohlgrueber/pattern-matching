@@ -37,6 +37,7 @@ enum Expr {
     Seq(Box<Expr>, Box<Expr>),
     Repeat(Box<Expr>, RepeatKind),
     Named(Box<Expr>, Ident),
+    Expr(syn::Expr),
     Any,
     Empty
 }
@@ -66,7 +67,8 @@ impl fmt::Display for Expr {
                     t.as_ref().map_or("".to_string(), |t| format!(",{}", t.value()))
                 )
             }),
-            Expr::Named(e, i) => write!(f, "{}#{}", e, i)
+            Expr::Named(e, i) => write!(f, "{}#{}", e, i),
+            Expr::Expr(e) => write!(f, "<expr>"),
         }
     }
 }
@@ -77,6 +79,8 @@ impl Parse for BinOp {
             input.parse::<Token![|]>().map(|_| BinOp::Or)
         } else if input.peek(Token![;]) {
             input.parse::<Token![;]>().map(|_| BinOp::Seq)
+        } else if !input.is_empty() && !input.peek(Token![,]) {
+            Ok(BinOp::Seq)
         } else {
             Err(input.error("expected binary operator"))
         }
@@ -166,7 +170,10 @@ fn atom_expr(input: ParseStream) -> Result<Expr> {
         let first: Expr = content.parse()?;
         Ok(first)
     } else {
-        Err(input.error("unsupported expression; enable syn's features=[\"full\"]"))
+        match input.parse::<syn::Expr>() {
+            Ok(e) => Ok(Expr::Expr(e)),
+            Err(_) => Err(input.error("unsupported expression; enable syn's features=[\"full\"]"))
+        }
     }
 }
 
@@ -218,7 +225,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let res = syn::parse_str::<Expr>("Foo(a | _, x){,2}#xy ; ()#abc | c?");
+        let res = syn::parse_str::<Expr>("Foo(x, 1* (z)){,2}#xy Foo() | x y");
 
         match res {
             Ok(i) => println!("{}", i),
