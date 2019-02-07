@@ -29,30 +29,31 @@ impl Precedence {
 }
 
 
+#[derive(PartialEq, Debug)]
 pub enum Expr {
     Node(Ident, Vec<Expr>),
-    Ident(Ident),
     Alt(Box<Expr>, Box<Expr>),
     Seq(Box<Expr>, Box<Expr>),
     Repeat(Box<Expr>, RepeatKind),
     Named(Box<Expr>, Ident),
-    Expr(syn::Lit),
+    Lit(syn::Lit),
     Any,
-    Empty
+    Empty // matches the empty sequence `()`
 }
 
+#[derive(PartialEq, Debug)]
 pub enum RepeatKind {
     Any,
     Plus,
     Optional,
-    Range(Option<syn::LitInt>, Option<syn::LitInt>)
+    Range(syn::LitInt, Option<syn::LitInt>),
+    Repeat(syn::LitInt)
 }
 
 impl fmt::Display for Expr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
             Expr::Node(i, args) => write!(f, "{}({})", i, args.iter().map(|x| format!("{}", x).to_string()).collect::<Vec<_>>().join(", ")),
-            Expr::Ident(i) => write!(f, "{}", i),
             Expr::Alt(left, right) => write!(f, "({} | {})", left, right),
             Expr::Seq(left, right) => write!(f, "({}; {})", left, right),
             Expr::Any => write!(f, "_"),
@@ -62,12 +63,13 @@ impl fmt::Display for Expr {
                 RepeatKind::Plus => "+".to_string(),
                 RepeatKind::Optional => "?".to_string(),
                 RepeatKind::Range(f, t) => format!("{{{}{}}}", 
-                    f.as_ref().map_or("".to_string(), |f| format!("{}", f.value())),
+                    f.value(),
                     t.as_ref().map_or("".to_string(), |t| format!(",{}", t.value()))
-                )
+                ),
+                RepeatKind::Repeat(r) => format!("{{{}}}", r.value())
             }),
             Expr::Named(e, i) => write!(f, "{}#{}", e, i),
-            Expr::Expr(_e) => write!(f, "<expr>"),
+            Expr::Lit(_e) => write!(f, "<expr>"),
         }
     }
 }
@@ -121,18 +123,18 @@ fn trailer_expr(input: ParseStream) -> Result<Expr> {
     } else if input.peek(token::Brace) {
         let content;
         braced!(content in input);
-        let f = if content.peek(Token![,]) {
-            None
-        } else {
-            Some(content.parse::<syn::LitInt>()?)
-        };
-        let t = if content.is_empty() {
-            None
+        let f = content.parse::<syn::LitInt>()?;
+        if content.is_empty() {
+            e = Expr::Repeat(Box::new(e), RepeatKind::Repeat(f))
         } else {
             content.parse::<Token![,]>()?;
-            Some(content.parse::<syn::LitInt>()?)
+            let t = if content.is_empty() {
+                None
+            } else {
+                Some(content.parse::<syn::LitInt>()?)
+            };
+            e = Expr::Repeat(Box::new(e), RepeatKind::Range(f, t));
         };
-        e = Expr::Repeat(Box::new(e), RepeatKind::Range(f, t));
     }
 
     if input.peek(Token![#]) {
@@ -158,8 +160,8 @@ fn atom_expr(input: ParseStream) -> Result<Expr> {
             id,
             vals.into_iter().collect()
         ))
-    } else if input.peek(Ident) {
-        input.parse().map(Expr::Ident)
+    /*} else if input.peek(Ident) {
+        input.parse().map(Expr::Ident)*/
     } else if input.peek(token::Paren) {
         let content;
         parenthesized!(content in input);
@@ -170,7 +172,7 @@ fn atom_expr(input: ParseStream) -> Result<Expr> {
         Ok(first)
     } else {
         match input.parse::<syn::Lit>() {
-            Ok(e) => Ok(Expr::Expr(e)),
+            Ok(e) => Ok(Expr::Lit(e)),
             Err(_) => Err(input.error("unsupported expression; enable syn's features=[\"full\"]"))
         }
     }
@@ -215,5 +217,220 @@ fn peek_precedence(input: ParseStream) -> Precedence {
         Precedence::of(&op)
     } else {
         Precedence::Any
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    fn parse_test(input: &'static str, exp: Expr) {
+        let res = syn::parse_str::<Expr>(input);
+        assert_eq!(res.ok(), Some(exp));
+    }
+
+    fn int_lit(input: u64) -> syn::LitInt {
+        syn::LitInt::new(input, syn::IntSuffix::None, proc_macro2::Span::call_site())
+    }
+
+    #[test]
+    fn any() {
+        parse_test("_", Expr::Any);
+    }
+
+    #[test]
+    fn empty() {
+        parse_test(
+            "()",
+            Expr::Empty
+        )
+    }
+
+    #[test]
+    fn lit() {
+        let exp = Expr::Lit(
+            syn::Lit::Int(int_lit(123))
+        );
+        parse_test("123", exp);
+
+        let exp = Expr::Lit(
+            syn::Lit::Bool(
+                syn::LitBool {
+                    value: false,
+                    span: proc_macro2::Span::call_site()
+                }
+            )
+        );
+        parse_test("false", exp);
+    }
+
+    #[test]
+    fn named() {
+        parse_test(
+            "_#test", 
+            Expr::Named(
+                Box::new(Expr::Any), 
+                proc_macro2::Ident::new("test", proc_macro2::Span::call_site())
+            )
+        );
+    }
+
+    #[test]
+    fn repeat() {
+        parse_test(
+            "_*", 
+            Expr::Repeat(
+                Box::new(Expr::Any), 
+                RepeatKind::Any
+            )
+        );
+        parse_test(
+            "_+", 
+            Expr::Repeat(
+                Box::new(Expr::Any), 
+                RepeatKind::Plus
+            )
+        );
+        parse_test(
+            "_?", 
+            Expr::Repeat(
+                Box::new(Expr::Any), 
+                RepeatKind::Optional
+            )
+        );
+        parse_test(
+            "_{3, 4}", 
+            Expr::Repeat(
+                Box::new(Expr::Any), 
+                RepeatKind::Range(
+                    int_lit(3),
+                    Some(int_lit(4)),
+                )
+            )
+        );
+        parse_test(
+            "_{3, }", 
+            Expr::Repeat(
+                Box::new(Expr::Any), 
+                RepeatKind::Range(
+                    int_lit(3),
+                    None,
+                )
+            )
+        );
+        parse_test(
+            "_{3}", 
+            Expr::Repeat(
+                Box::new(Expr::Any), 
+                RepeatKind::Repeat(
+                    int_lit(3)
+                )
+            )
+        );
+    }
+
+
+    #[test]
+    fn seq() {
+        parse_test(
+            "_ 1", 
+            Expr::Seq(
+                Box::new(Expr::Any), 
+                Box::new(Expr::Lit(syn::Lit::Int(int_lit(1))))
+            )
+        );
+        parse_test(
+            "1 2 3", 
+            Expr::Seq(
+                Box::new(Expr::Seq(
+                    Box::new(Expr::Lit(syn::Lit::Int(int_lit(1)))),
+                    Box::new(Expr::Lit(syn::Lit::Int(int_lit(2))))
+                )),
+                Box::new(Expr::Lit(syn::Lit::Int(int_lit(3))))
+            )
+        );
+    }
+
+
+    #[test]
+    fn alt() {
+        parse_test(
+            "_ | 1", 
+            Expr::Alt(
+                Box::new(Expr::Any), 
+                Box::new(Expr::Lit(syn::Lit::Int(int_lit(1))))
+            )
+        );
+        parse_test(
+            "1|2|3",
+            Expr::Alt(
+                Box::new(Expr::Alt(
+                    Box::new(Expr::Lit(syn::Lit::Int(int_lit(1)))),
+                    Box::new(Expr::Lit(syn::Lit::Int(int_lit(2))))
+                )),
+                Box::new(Expr::Lit(syn::Lit::Int(int_lit(3))))
+            )
+        );
+    }
+
+    #[test]
+    fn node() {
+        parse_test(
+            "Test()", 
+            Expr::Node(
+                proc_macro2::Ident::new("Test", proc_macro2::Span::call_site()),
+                vec!()
+            )
+        );
+        parse_test(
+            "Test(1)", 
+            Expr::Node(
+                proc_macro2::Ident::new("Test", proc_macro2::Span::call_site()),
+                vec!(
+                    Expr::Lit(syn::Lit::Int(int_lit(1)))
+                )
+            )
+        );
+        parse_test(
+            "Test(1,2)", 
+            Expr::Node(
+                proc_macro2::Ident::new("Test", proc_macro2::Span::call_site()),
+                vec!(
+                    Expr::Lit(syn::Lit::Int(int_lit(1))),
+                    Expr::Lit(syn::Lit::Int(int_lit(2)))
+                )
+            )
+        );
+    }
+
+    #[test]
+    fn precedence() {
+        // alt < seq
+        parse_test(
+            "_ _ | _",  // ( _ _ ) | ( _ )
+            Expr::Alt(
+                Box::new(Expr::Seq(
+                    Box::new(Expr::Any),
+                    Box::new(Expr::Any)
+                )),
+                Box::new(Expr::Any)
+            )
+        );
+        // alt < seq < named
+        parse_test(
+            "_ | _ _ #name",  // ( _ ) | ( _ ( _ #name ) )
+            Expr::Alt(
+                Box::new(Expr::Any),
+                Box::new(Expr::Seq(
+                    Box::new(Expr::Any),
+                    Box::new(Expr::Named(
+                        Box::new(Expr::Any),
+                        proc_macro2::Ident::new("name", proc_macro2::Span::call_site())
+                    ))
+                )),
+                
+            )
+        );
     }
 }
