@@ -1,11 +1,9 @@
 [package]
-name = "example"
+name = "pattern_tree"
 version = "0.1.0"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
 
-
 [dependencies]
-pattern = { path = "../pattern" }
-pattern_tree = { path = "../pattern_tree" }
+gen_pattern_tree = { path = "../gen_pattern_tree" }
 lazy_static = "1.2.0"

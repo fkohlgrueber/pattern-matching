@@ -1,21 +1,20 @@
-use parse_pattern::pattern;
+
+use pattern::pattern;
+
 use lazy_static::lazy_static;
 
-mod matchers;
-mod pattern_tree;
-
-use matchers::*;
-use pattern_tree::Lit::*;
+use pattern_tree::matchers::*;
 use pattern_tree::Expr::*;
+use pattern_tree::Lit::*;
 
 pattern!(
     PAT: Alt<pattern_tree::Expr> = 
-        Array( Array(()) Lit(_){1, 2} )
+        Array( Array(()) Lit(Bool(_)){1, 2} )
 );
+
 
 #[test]
 fn test() {
-    //my_print();
     println!("THIS IS THE PATTERN: {:?}", *PAT);
 }
 
