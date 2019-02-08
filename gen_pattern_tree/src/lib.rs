@@ -126,6 +126,16 @@ pub fn gen_pattern_tree(_item: TokenStream) -> TokenStream {
         }
     );
 
+    // generate mod that exports all enum variants
+    let enum_names = pattern_tree_def.iter().map(|x| &x.name).collect::<Vec<_>>();
+    let exports = quote!(
+        pub mod variants {
+            #(
+                pub use super:: #enum_names ::*;
+            )*
+        }
+    );
+
     // generate enums
     let enums = quote!(
         #(#pattern_tree_def)*
@@ -139,6 +149,7 @@ pub fn gen_pattern_tree(_item: TokenStream) -> TokenStream {
         }
         #enums 
         #types
+        #exports
     ).into()
 }
 

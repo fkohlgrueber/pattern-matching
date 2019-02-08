@@ -3,13 +3,12 @@ use pattern::pattern;
 
 use lazy_static::lazy_static;
 
-use pattern_tree::matchers::*;
-use pattern_tree::Expr::*;
-use pattern_tree::Lit::*;
-
 pattern!(
     PAT: pattern_tree::Expr = 
-        Array( Array(()) Lit(Bool(_)){1, 2} )
+        Array(
+            Array(_) | Test(_)#test | Lit(Bool(_) | Int(_) | Char(_)) |
+            Array( Array(()) Lit(Bool(_)){1, 2} Test(_?))
+        )
 );
 
 
