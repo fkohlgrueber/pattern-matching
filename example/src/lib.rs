@@ -9,8 +9,8 @@ use pattern_tree::Lit::*;
 use pattern_tree::Expr::*;
 
 pattern!(
-    PAT: Opt<pattern_tree::Expr> = 
-        Test(Char('a')?)
+    PAT: Alt<pattern_tree::Expr> = 
+        Array( Array(()) Lit(_){1, 2} )
 );
 
 #[test]

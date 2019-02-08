@@ -16,11 +16,12 @@ pub enum Alt<T> {
 
 #[derive(Debug)]
 pub enum Seq<T> {
+    Any,
     Empty,
     Elmt(Box<T>),
     Repeat(Box<Seq<T>>, RepeatRange),
     Seq(Box<Seq<T>>, Box<Seq<T>>),
-    Alt(Box<Alt<Seq<T>>>, Box<Alt<Seq<T>>>),
+    Alt(Box<Seq<T>>, Box<Seq<T>>),
     Named(Box<Seq<T>>, String)
 }
 

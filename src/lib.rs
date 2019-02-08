@@ -127,6 +127,40 @@ fn to_tokens_opt(parse_tree: &ParseExpr) -> proc_macro2::TokenStream {
 
 fn to_tokens_seq(parse_tree: &ParseExpr) -> proc_macro2::TokenStream {
     match parse_tree {
-        _ => panic!("Seq isn't implemented yet")
+        ParseExpr::Any => quote!(Seq::Any),
+        ParseExpr::Alt(a, b) => {
+            let a_tokens = to_tokens_seq(a);
+            let b_tokens = to_tokens_seq(b);
+            quote!(Seq::Alt(Box::new(#a_tokens), Box::new(#b_tokens)))
+        },
+        ParseExpr::Node(ident, args) => {
+            let tokens = node_to_tokens(ident, args);
+            quote!(Seq::Elmt(Box::new(#tokens)))
+        },
+        ParseExpr::Lit(l) => {
+            quote!(Seq::Elmt(Box::new(#l)))
+        },
+        ParseExpr::Named(e, i) => {
+            let e_tokens = to_tokens_seq(e);
+            quote!(Seq::Named(Box::new(#e_tokens), stringify!(#i).to_string()))
+        },
+        ParseExpr::Empty => quote!(Seq::Empty),
+        ParseExpr::Repeat(e, r) => {
+            let e_tokens = to_tokens_seq(e);
+            let repeat_range = match r {
+                RepeatKind::Any => quote!(RepeatRange { start: 0, end: None }),
+                RepeatKind::Plus => quote!(RepeatRange { start: 1, end: None }),
+                RepeatKind::Optional => quote!(RepeatRange { start: 0, end: Some(2) }),
+                RepeatKind::Range(f, Some(t)) => quote!(RepeatRange { start: #f, end: Some((#t)+1) }),
+                RepeatKind::Range(f, None) => quote!(RepeatRange { start: #f, end: None }),
+                RepeatKind::Repeat(n) => quote!(RepeatRange { start: #n, end: Some((#n)+1) })
+            };
+            quote!(Seq::Repeat(Box::new(#e_tokens), #repeat_range))
+        },
+        ParseExpr::Seq(a, b) => {
+            let a_tokens = to_tokens_seq(a);
+            let b_tokens = to_tokens_seq(b);
+            quote!(Seq::Seq(Box::new(#a_tokens), Box::new(#b_tokens)))
+        }
     }
 }
