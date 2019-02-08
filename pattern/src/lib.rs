@@ -22,16 +22,19 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     // TODO: the type should be detected as part of the parsing step
     let root_ty = {
         if ty_str.starts_with("Alt") {
-            Ty::Alt
+            Some(Ty::Alt)
         } else if ty_str.starts_with("Seq") {
-            Ty::Seq
+            Some(Ty::Seq)
         } else if ty_str.starts_with("Opt") {
-            Ty::Opt
+            Some(Ty::Opt)
         } else {
-            panic!("Invalid Type provided!")
+            None
         }
     };
-    let tokens = to_tokens(&parse_pattern.node, &root_ty);
+    let tokens = match root_ty {
+        Some(root_ty) => to_tokens(&parse_pattern.node, &root_ty),
+        None => to_tokens_node(&parse_pattern.node)
+    };
     quote!(
         lazy_static!{
             static ref #name: #ty = #tokens;
@@ -55,6 +58,17 @@ fn node_to_tokens(ident: &proc_macro2::Ident, args: &Vec<ParseExpr>) -> proc_mac
     ).collect::<Vec<_>>();
     quote!(#ident ( #(#tokens),* ))
 }
+
+fn to_tokens_node(parse_tree: &ParseExpr) -> proc_macro2::TokenStream {
+    match parse_tree {
+        ParseExpr::Node(ident, args) => {
+            let tokens = node_to_tokens(ident, args);
+            quote!(#tokens)
+        },
+        _ => panic!("Expected node")
+    }
+}
+
 
 fn to_tokens_alt(parse_tree: &ParseExpr) -> proc_macro2::TokenStream {
     match parse_tree {
