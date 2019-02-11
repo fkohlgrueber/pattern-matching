@@ -84,8 +84,23 @@ pub fn gen_pattern_tree(_item: TokenStream) -> TokenStream {
                     args: vec!(PatternTreeArg{ inner_ty: ident("Expr"), ty: Ty::Seq})
                 },
                 PatternTreeVariant{
-                    name: ident("Test"),
-                    args: vec!(PatternTreeArg{ inner_ty: ident("Lit"), ty: Ty::Opt})
+                    name: ident("Block"),
+                    args: vec!(PatternTreeArg{ inner_ty: ident("Stmt"), ty: Ty::Seq})
+                },
+                PatternTreeVariant{
+                    name: ident("If"),
+                    args: vec!(
+                        PatternTreeArg { inner_ty: ident("Expr"), ty: Ty::Alt},
+                        PatternTreeArg { inner_ty: ident("Stmt"), ty: Ty::Seq},
+                        PatternTreeArg { inner_ty: ident("Expr"), ty: Ty::Opt},
+                    )
+                },
+                PatternTreeVariant{
+                    name: ident("IfLet"),
+                    args: vec!(
+                        PatternTreeArg { inner_ty: ident("Stmt"), ty: Ty::Seq},
+                        PatternTreeArg { inner_ty: ident("Expr"), ty: Ty::Opt},
+                    )
                 }
             )
         },
@@ -104,6 +119,19 @@ pub fn gen_pattern_tree(_item: TokenStream) -> TokenStream {
                     name: ident("Int"),
                     args: vec!(PatternTreeArg{ inner_ty: ident("u128"), ty: Ty::Alt})
                 }
+            )
+        },
+        PatternTreeNode {
+            name: ident("Stmt"),
+            variants: vec!(
+                PatternTreeVariant{
+                    name: ident("Expr"),
+                    args: vec!(PatternTreeArg{ inner_ty: ident("Expr"), ty: Ty::Alt})
+                },
+                PatternTreeVariant{
+                    name: ident("Semi"),
+                    args: vec!(PatternTreeArg{ inner_ty: ident("Expr"), ty: Ty::Alt})
+                },
             )
         },
     );

@@ -103,10 +103,10 @@ fn to_tokens_opt(parse_tree: &ParseExpr) -> proc_macro2::TokenStream {
         },
         ParseExpr::Node(ident, args) => {
             let tokens = node_to_tokens(ident, args);
-            quote!(pattern_tree::matchers::Opt::Elmt(#tokens))
+            quote!(pattern_tree::matchers::Opt::Elmt(Box::new(#tokens)))
         },
         ParseExpr::Lit(l) => {
-            quote!(pattern_tree::matchers::Opt::Elmt(#l))
+            quote!(pattern_tree::matchers::Opt::Elmt(Box::new(#l)))
         },
         ParseExpr::Named(e, i) => {
             let e_tokens = to_tokens_opt(e);
