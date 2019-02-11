@@ -5,7 +5,7 @@ use lazy_static::lazy_static;
 
 pub mod matchers;
 
-use matchers::*;
+use crate::matchers::*;
 
 gen_pattern_tree!();
 

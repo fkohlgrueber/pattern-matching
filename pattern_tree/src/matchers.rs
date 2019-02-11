@@ -9,7 +9,7 @@ pub struct RepeatRange {
 #[derive(Debug)]
 pub enum Alt<T> {
     Any,
-    Elmt(T),
+    Elmt(Box<T>),
     Alt(Box<Alt<T>>, Box<Alt<T>>),
     Named(Box<Alt<T>>, String)
 }

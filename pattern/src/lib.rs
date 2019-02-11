@@ -6,9 +6,9 @@ use quote::ToTokens;
 
 mod parse;
 
-use parse::Expr as ParseExpr;
-use parse::RepeatKind;
-use parse::Pattern;
+use crate::parse::Expr as ParseExpr;
+use crate::parse::RepeatKind;
+use crate::parse::Pattern;
 
 use pattern_tree::Ty;
 use pattern_tree::TYPES;
@@ -80,10 +80,10 @@ fn to_tokens_alt(parse_tree: &ParseExpr) -> proc_macro2::TokenStream {
         },
         ParseExpr::Node(ident, args) => {
             let tokens = node_to_tokens(ident, args);
-            quote!(pattern_tree::matchers::Alt::Elmt(#tokens))
+            quote!(pattern_tree::matchers::Alt::Elmt(Box::new(#tokens)))
         },
         ParseExpr::Lit(l) => {
-            quote!(pattern_tree::matchers::Alt::Elmt(#l))
+            quote!(pattern_tree::matchers::Alt::Elmt(Box::new(#l)))
         },
         ParseExpr::Named(e, i) => {
             let e_tokens = to_tokens_alt(e);
