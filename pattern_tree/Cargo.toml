@@ -7,3 +7,6 @@ edition = "2018"
 [dependencies]
 gen_pattern_tree = { path = "../gen_pattern_tree" }
 lazy_static = "1.2.0"
+
+[lib]
+path = "pattern_tree.rs"

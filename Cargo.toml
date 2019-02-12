@@ -8,3 +8,6 @@ edition = "2018"
 pattern = { path = "./pattern" }
 pattern_tree = { path = "./pattern_tree" }
 lazy_static = "1.2.0"
+
+[lib]
+doctest = false
