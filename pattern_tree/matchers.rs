@@ -10,8 +10,8 @@ pub struct RepeatRange {
 pub enum Alt<T> {
     Any,
     Elmt(Box<T>),
-    Alt(Box<Alt<T>>, Box<Alt<T>>),
-    Named(Box<Alt<T>>, String)
+    Alt(Box<Self>, Box<Self>),
+    Named(Box<Self>, String)
 }
 
 #[derive(Debug)]
@@ -19,10 +19,10 @@ pub enum Seq<T> {
     Any,
     Empty,
     Elmt(Box<T>),
-    Repeat(Box<Seq<T>>, RepeatRange),
-    Seq(Box<Seq<T>>, Box<Seq<T>>),
-    Alt(Box<Seq<T>>, Box<Seq<T>>),
-    Named(Box<Seq<T>>, String)
+    Repeat(Box<Self>, RepeatRange),
+    Seq(Box<Self>, Box<Self>),
+    Alt(Box<Self>, Box<Self>),
+    Named(Box<Self>, String)
 }
 
 #[derive(Debug)]
@@ -30,8 +30,8 @@ pub enum Opt<T> {
     Any,  // anything, but not None
     Elmt(Box<T>),
     None,
-    Alt(Box<Opt<T>>, Box<Opt<T>>),
-    Named(Box<Opt<T>>, String)
+    Alt(Box<Self>, Box<Self>),
+    Named(Box<Self>, String)
 }
 
 impl<T> Seq<T> {
