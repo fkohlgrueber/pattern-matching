@@ -150,12 +150,13 @@ pub fn gen_pattern_tree(_item: TokenStream) -> TokenStream {
         |x| {
             let name = &x.name;
             let args = x.args.iter().map(|x| &x.ty).collect::<Vec<_>>();
-            quote!( p.insert(stringify!(#name), vec!(#(Ty::#args),*)); )
+            let args_id = x.args.iter().map(|x| &x.assoc_ty).collect::<Vec<_>>();
+            quote!( p.insert(stringify!(#name), vec!(#( (stringify!(#args_id), Ty::#args) ),*)); )
         }
     ).collect::<Vec<_>>();
     let types = quote!(
         lazy_static!{
-            pub static ref TYPES: std::collections::HashMap<&'static str, Vec<Ty>> = {
+            pub static ref TYPES: std::collections::HashMap<&'static str, Vec<(&'static str, Ty)>> = {
                 let mut p = std::collections::HashMap::new();
                 #(#x)*
                 p

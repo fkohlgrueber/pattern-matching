@@ -4,8 +4,13 @@ use pattern::pattern;
 
 use lazy_static::lazy_static;
 
-#[derive(Debug)]
-struct Res {}
+#[derive(Debug, Default)]
+pub struct Res<'o, A>
+where A: MatchAssociations {
+    var: Option<&'o A::Bool>,
+    var2: Option<&'o A::Lit>,
+    var3: Option<&'o A::Expr>,
+}
 
 #[derive(Debug)]
 pub struct Ast {}
@@ -44,18 +49,20 @@ impl MatchAssociations for Ast {
     type Stmt = AstStmt;
 }
 
+use pattern_tree::matchers::*;
+
 pattern!(
-    PAT: pattern_tree::Expr<'_, '_, Res, Ast> = 
-        Array(
-            Array(_) | Lit(Bool(_) | Int(_) | Char(_)) |
-            Array( Array(()) Lit(Bool(_)){1, 2} )
-        )
+    PAT: Alt<pattern_tree::Expr> = 
+        Array( Lit(Bool(_#var)#var2) )
 );
 
 
 #[test]
 fn test() {
     //println!("THIS IS THE PATTERN: {:?}", *PAT);
-    PAT();
+
+    let ast_node = AstExpr::Lit(AstLit::Bool(false));
+
+    PAT(&ast_node);
 }
 
