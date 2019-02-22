@@ -1,3 +1,4 @@
+#![recursion_limit="256"]
 
 extern crate proc_macro;
 use proc_macro::TokenStream;
@@ -17,6 +18,9 @@ use pattern_tree::TYPES;
 pub fn pattern(item: TokenStream) -> TokenStream {
     let parse_pattern = syn::parse_macro_input!(item as Pattern);
     let name = parse_pattern.name;
+    let struct_name = proc_macro2::Ident::new(&(name.to_string() + "Struct"), proc_macro2::Span::call_site());
+    let res_name = proc_macro2::Ident::new(&(name.to_string() + "_Res"), proc_macro2::Span::call_site());
+    //let res_tmp_name = proc_macro2::Ident::new(&(name.to_string() + "ResTmp"), proc_macro2::Span::call_site());
     let ty = parse_pattern.ty;
     let ty_str = ty.clone().into_token_stream().to_string();
     // TODO: the type should be detected as part of the parsing step
@@ -36,8 +40,79 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         None => to_tokens_node(&parse_pattern.node)
     };
     quote!(
-        lazy_static!{
-            static ref #name: #ty = #tokens;
+        /*
+        #[derive(Debug)]
+        struct #res_name<'o, A>
+        where A: MatchAssociations {
+            // TODO: add inferred types here
+            // this struct can be created from the tmp struct (see below)
+            // the conversion happens by unwrapping all options. This can safely be done
+            // because the pattern is known.
+            var: &'o A::Lit,
+            var2: &'o A::Bool,
+            expr: &'o A::Expr,
+        }
+
+        #[derive(Default)]
+        struct #res_tmp_name<'o, A>
+        where A: MatchAssociations {
+            // TODO: add inferred types here
+            // in this struct, non-Vec types are wrapped in Option<...> so that the struct can 
+            // be initialized by ::default()
+            var: Option<&'o A::Lit>,
+            var2: Option<&'o A::Bool>,
+            expr: Option<&'o A::Expr>,
+        }
+        
+        struct #name {}
+
+        impl #name {
+            /*
+            fn is_match() {
+                let pattern: #ty = #tokens;
+                dbg!(pattern);
+            }*/
+
+            fn is_match_new<'o, A>(node: &'o A::Expr) -> Option< #res_name<'o, A> >
+            where 
+                A: 'o + MatchAssociations, 
+                //for<'cx> pattern_tree::Expr<'cx, 'o, #res_tmp_name<'o, A>, A>: IsMatch<'cx, 'o, #res_tmp_name<'o, A>, A::Expr> 
+            {
+                let pattern = #tokens;
+
+                //let mut res = #res_tmp_name::default();
+
+                /*let (is_match, _res) = pattern.is_match(&mut res, node);
+                if is_match {
+                    Some(res)
+                } else {
+                    None
+                }*/
+                None
+            }
+        }
+        */
+
+        /*
+        struct #struct_name {}
+
+        static #name: #struct_name = #struct_name{};
+        
+        impl #struct_name {
+            fn is_match<'o, A>(node: &'o A::Expr) -> bool
+            where 
+                A: 'o + pattern_tree::MatchAssociations, 
+                for<'cx> pattern_tree::Expr<'cx, 'o, #res_name<'o, A>, A>: IsMatch<A::Expr> 
+            {
+                let pattern: #ty = #tokens;
+                pattern.is_match(node)
+            }
+        }*/
+        
+        
+        fn #name () {
+            let pattern: #ty = #tokens;
+            dbg!(pattern);
         }
     ).into()
 }
@@ -87,7 +162,12 @@ fn to_tokens_alt(parse_tree: &ParseExpr) -> proc_macro2::TokenStream {
         },
         ParseExpr::Named(e, i) => {
             let e_tokens = to_tokens_alt(e);
-            quote!(pattern_tree::matchers::Alt::Named(Box::new(#e_tokens), stringify!(#i).to_string()))
+            quote!(
+                pattern_tree::matchers::Alt::Named(
+                    Box::new(#e_tokens), 
+                    |cx, elmt| {cx.#i = Some(elmt); cx}
+                )
+            )
         },
         _ => panic!("Seq, Repeat and Empty aren't allowed when Alt<_> is expected")
     }
@@ -110,7 +190,12 @@ fn to_tokens_opt(parse_tree: &ParseExpr) -> proc_macro2::TokenStream {
         },
         ParseExpr::Named(e, i) => {
             let e_tokens = to_tokens_opt(e);
-            quote!(pattern_tree::matchers::Opt::Named(Box::new(#e_tokens), stringify!(#i).to_string()))
+            quote!(
+                pattern_tree::matchers::Opt::Named(
+                    Box::new(#e_tokens), 
+                    |cx, elmt| {cx.#i = Some(elmt); cx}
+                )
+            )
         },
         ParseExpr::Empty => quote!(pattern_tree::matchers::Opt::None),
         ParseExpr::Repeat(e, RepeatKind::Optional) => {
@@ -140,7 +225,12 @@ fn to_tokens_seq(parse_tree: &ParseExpr) -> proc_macro2::TokenStream {
         },
         ParseExpr::Named(e, i) => {
             let e_tokens = to_tokens_seq(e);
-            quote!(pattern_tree::matchers::Seq::Named(Box::new(#e_tokens), stringify!(#i).to_string()))
+            quote!(
+                pattern_tree::matchers::Seq::Named(
+                    Box::new(#e_tokens), 
+                    |cx, elmt| {cx.#i = Some(elmt); cx}
+                )
+            )
         },
         ParseExpr::Empty => quote!(pattern_tree::matchers::Seq::Empty),
         ParseExpr::Repeat(e, r) => {

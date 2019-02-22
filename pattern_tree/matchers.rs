@@ -6,35 +6,37 @@ pub struct RepeatRange {
     pub end: Option<usize>  // exclusive
 }
 
+type Setter<'cx, 'o, Cx, O> = fn(&'cx mut Cx, &'o O) -> &'cx mut Cx;
+
 #[derive(Debug)]
-pub enum Alt<T> {
+pub enum Alt<'cx, 'o, T, Cx, O> {
     Any,
     Elmt(Box<T>),
     Alt(Box<Self>, Box<Self>),
-    Named(Box<Self>, String)
+    Named(Box<Self>, Setter<'cx, 'o, Cx, O>)
 }
 
 #[derive(Debug)]
-pub enum Seq<T> {
+pub enum Seq<'cx, 'o, T, Cx, O> {
     Any,
     Empty,
     Elmt(Box<T>),
     Repeat(Box<Self>, RepeatRange),
     Seq(Box<Self>, Box<Self>),
     Alt(Box<Self>, Box<Self>),
-    Named(Box<Self>, String)
+    Named(Box<Self>, Setter<'cx, 'o, Cx, O>)
 }
 
 #[derive(Debug)]
-pub enum Opt<T> {
+pub enum Opt<'cx, 'o, T, Cx, O> {
     Any,  // anything, but not None
     Elmt(Box<T>),
     None,
     Alt(Box<Self>, Box<Self>),
-    Named(Box<Self>, String)
+    Named(Box<Self>, Setter<'cx, 'o, Cx, O>)
 }
 
-impl<T> Seq<T> {
+impl<'cx, 'o, T, Cx, O> Seq<'cx, 'o, T, Cx, O> {
     pub fn num_elmts_range(&self) -> RepeatRange {
         match self {
             Seq::Any => RepeatRange { start: 1, end: Some(2)},
