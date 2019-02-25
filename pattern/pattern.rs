@@ -356,11 +356,11 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         }*/
         
         
-        fn #name (node: &AstExpr) -> bool {
+        fn #name (node: &<Ast as pattern_tree::MatchAssociations>::Expr) -> bool {
             let pattern: #pattern_ty = #tokens;
-            dbg!(pattern);
-            //pattern.is_match(node);
-            true
+            //dbg!(pattern);
+            pattern.is_match(node)
+            //true
         }
     ).into()
 }
@@ -409,17 +409,11 @@ fn to_tokens_alt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, ResTy<Iden
             quote!(pattern_tree::matchers::Alt::Elmt(Box::new(#l)))
         },
         ParseExpr::Named(e, i) => {
-            let ty = named_types.get(i).unwrap();
-            let action = if let ResTy::Seq(s) = ty {
-                quote!( cx.#i.push(elmt); )
-            } else {
-                quote!( cx.#i = Some(elmt); )
-            };
-            let e_tokens = to_tokens_seq(e, named_types);
+            let e_tokens = to_tokens_alt(e, named_types);
             quote!(
-                pattern_tree::matchers::Seq::Named(
+                pattern_tree::matchers::Alt::Named(
                     Box::new(#e_tokens), 
-                    |cx, elmt| {#action cx}
+                    |cx, elmt| {cx.#i = Some(elmt); cx}
                 )
             )
         },
@@ -443,17 +437,11 @@ fn to_tokens_opt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, ResTy<Iden
             quote!(pattern_tree::matchers::Opt::Elmt(Box::new(#l)))
         },
         ParseExpr::Named(e, i) => {
-            let ty = named_types.get(i).unwrap();
-            let action = if let ResTy::Seq(s) = ty {
-                quote!( cx.#i.push(elmt); )
-            } else {
-                quote!( cx.#i = Some(elmt); )
-            };
-            let e_tokens = to_tokens_seq(e, named_types);
+            let e_tokens = to_tokens_opt(e, named_types);
             quote!(
-                pattern_tree::matchers::Seq::Named(
+                pattern_tree::matchers::Opt::Named(
                     Box::new(#e_tokens), 
-                    |cx, elmt| {#action cx}
+                    |cx, elmt| {cx.#i = Some(elmt); cx}
                 )
             )
         },

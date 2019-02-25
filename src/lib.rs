@@ -53,7 +53,7 @@ use pattern_tree::matchers::*;
 
 pattern!(
     PAT: Alt<pattern_tree::Expr> = 
-        Array( Lit(Bool(_#var)#var2) )
+        Array( Lit(Bool(_#var|_)#var2)*#var3 )
 );
 
 
