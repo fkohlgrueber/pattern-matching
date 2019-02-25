@@ -267,6 +267,22 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         }
     ).collect::<Vec<_>>();
 
+    let init_items = named_subpattern_types.iter().map(
+        |(k, v)| match v {
+            ResTy::Elmt(e) => quote!( #k: None, ),
+            ResTy::Opt(o) => match &**o {
+                ResTy::Elmt(e) => quote!( #k: None, ),
+                _ => panic!("This is not implemented yet!!")
+            },
+            ResTy::Seq(s) => match &**s {
+                ResTy::Elmt(e) => quote!( #k: vec!(), ),
+                _ => panic!("This is not implemented yet!!")
+            },
+            // TODO: implement others!
+            _ => panic!("This is not implemented yet!!")
+        }
+    ).collect::<Vec<_>>();
+
     let pattern_ty = match &root_ty {
         Some(Ty::Alt) => quote!( Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<Ast>, Ast>, #struct_name<Ast>, <Ast as pattern_tree::MatchAssociations>::Expr> ),
         Some(Ty::Seq) => quote!( Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<Ast>, Ast>, #struct_name<Ast>, <Ast as pattern_tree::MatchAssociations>::Expr> ),
@@ -359,7 +375,13 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         fn #name (node: &<Ast as pattern_tree::MatchAssociations>::Expr) -> bool {
             let pattern: #pattern_ty = #tokens;
             //dbg!(pattern);
-            pattern.is_match(node)
+
+            let mut cx = #struct_name {
+                #(#init_items)*
+            };
+
+            let (r, cx) = pattern.is_match(&mut cx, node);
+            r
             //true
         }
     ).into()
