@@ -152,14 +152,14 @@ fn get_named_subpattern_types(input: &parse::Expr, ty: &PatTy) -> HashMap<Ident,
         parse::Expr::Repeat(e, _r) => get_named_subpattern_types(e, ty),
     }
 }
-
+/*
 fn print_hm(input: &HashMap<Ident, ResTy<Ident>>) {
     println!("struct Result {{");
     for (k, v) in input {
         println!("    {}: {}", k.to_string(), v)
     }
     println!("}}\n")
-}
+}*/
 
 fn get_simple_path(ty: &syn::Type) -> Option<&Ident> {
     if let syn::Type::Path(p) = &ty {
@@ -227,8 +227,6 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     let parse_pattern = syn::parse_macro_input!(item as Pattern);
     let name = parse_pattern.name;
     let struct_name = proc_macro2::Ident::new(&(name.to_string() + "Struct"), proc_macro2::Span::call_site());
-    let res_name = proc_macro2::Ident::new(&(name.to_string() + "_Res"), proc_macro2::Span::call_site());
-    //let res_tmp_name = proc_macro2::Ident::new(&(name.to_string() + "ResTmp"), proc_macro2::Span::call_site());
     let ty = parse_pattern.ty;
     let ty_str = ty.clone().into_token_stream().to_string();
     // TODO: the type should be detected as part of the parsing step
@@ -262,24 +260,20 @@ pub fn pattern(item: TokenStream) -> TokenStream {
                 ResTy::Elmt(e) => quote!( #k: Vec<&'o A::#e>, ),
                 _ => panic!("This is not implemented yet!!")
             },
-            // TODO: implement others!
-            _ => panic!("This is not implemented yet!!")
         }
     ).collect::<Vec<_>>();
 
     let init_items = named_subpattern_types.iter().map(
         |(k, v)| match v {
-            ResTy::Elmt(e) => quote!( #k: None, ),
+            ResTy::Elmt(_e) => quote!( #k: None, ),
             ResTy::Opt(o) => match &**o {
-                ResTy::Elmt(e) => quote!( #k: None, ),
+                ResTy::Elmt(_e) => quote!( #k: None, ),
                 _ => panic!("This is not implemented yet!!")
             },
             ResTy::Seq(s) => match &**s {
-                ResTy::Elmt(e) => quote!( #k: vec!(), ),
+                ResTy::Elmt(_e) => quote!( #k: vec!(), ),
                 _ => panic!("This is not implemented yet!!")
             },
-            // TODO: implement others!
-            _ => panic!("This is not implemented yet!!")
         }
     ).collect::<Vec<_>>();
 
@@ -301,76 +295,6 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         where A: pattern_tree::MatchAssociations {
             #(#result_items)*
         }
-
-        /*
-        #[derive(Debug)]
-        struct #res_name<'o, A>
-        where A: MatchAssociations {
-            // TODO: add inferred types here
-            // this struct can be created from the tmp struct (see below)
-            // the conversion happens by unwrapping all options. This can safely be done
-            // because the pattern is known.
-            var: &'o A::Lit,
-            var2: &'o A::Bool,
-            expr: &'o A::Expr,
-        }
-
-        #[derive(Default)]
-        struct #res_tmp_name<'o, A>
-        where A: MatchAssociations {
-            // TODO: add inferred types here
-            // in this struct, non-Vec types are wrapped in Option<...> so that the struct can 
-            // be initialized by ::default()
-            var: Option<&'o A::Lit>,
-            var2: Option<&'o A::Bool>,
-            expr: Option<&'o A::Expr>,
-        }
-        
-        struct #name {}
-
-        impl #name {
-            /*
-            fn is_match() {
-                let pattern: #ty = #tokens;
-                dbg!(pattern);
-            }*/
-
-            fn is_match_new<'o, A>(node: &'o A::Expr) -> Option< #res_name<'o, A> >
-            where 
-                A: 'o + MatchAssociations, 
-                //for<'cx> pattern_tree::Expr<'cx, 'o, #res_tmp_name<'o, A>, A>: IsMatch<'cx, 'o, #res_tmp_name<'o, A>, A::Expr> 
-            {
-                let pattern = #tokens;
-
-                //let mut res = #res_tmp_name::default();
-
-                /*let (is_match, _res) = pattern.is_match(&mut res, node);
-                if is_match {
-                    Some(res)
-                } else {
-                    None
-                }*/
-                None
-            }
-        }
-        */
-
-        /*
-        struct #struct_name {}
-
-        static #name: #struct_name = #struct_name{};
-        
-        impl #struct_name {
-            fn is_match<'o, A>(node: &'o A::Expr) -> bool
-            where 
-                A: 'o + pattern_tree::MatchAssociations, 
-                for<'cx> pattern_tree::Expr<'cx, 'o, #res_name<'o, A>, A>: IsMatch<A::Expr> 
-            {
-                let pattern: #ty = #tokens;
-                pattern.is_match(node)
-            }
-        }*/
-        
         
         fn #name (node: &<Ast as pattern_tree::MatchAssociations>::Expr) -> Option<#struct_name<Ast>> {
             let pattern: #pattern_ty = #tokens;
@@ -498,7 +422,7 @@ fn to_tokens_seq(parse_tree: &ParseExpr, named_types: &HashMap<Ident, ResTy<Iden
         },
         ParseExpr::Named(e, i) => {
             let ty = named_types.get(i).unwrap();
-            let action = if let ResTy::Seq(s) = ty {
+            let action = if let ResTy::Seq(_s) = ty {
                 quote!( cx.#i.push(elmt); )
             } else {
                 quote!( cx.#i = Some(elmt); )
