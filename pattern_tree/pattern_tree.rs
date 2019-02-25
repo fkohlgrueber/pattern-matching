@@ -17,6 +17,7 @@ pub trait MatchAssociations {
     type Char: Debug;
     type Int: Debug;
     type Stmt: Debug;
+    type BlockType: Debug;
 }
 
 
