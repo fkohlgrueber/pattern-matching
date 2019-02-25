@@ -372,7 +372,7 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         }*/
         
         
-        fn #name (node: &<Ast as pattern_tree::MatchAssociations>::Expr) -> bool {
+        fn #name (node: &<Ast as pattern_tree::MatchAssociations>::Expr) -> Option<#struct_name<Ast>> {
             let pattern: #pattern_ty = #tokens;
             //dbg!(pattern);
 
@@ -380,9 +380,12 @@ pub fn pattern(item: TokenStream) -> TokenStream {
                 #(#init_items)*
             };
 
-            let (r, cx) = pattern.is_match(&mut cx, node);
-            r
-            //true
+            let (r, cx_out) = pattern.is_match(&mut cx, node);
+            if r {
+                Some(cx)
+            } else {
+                None
+            }
         }
     ).into()
 }
