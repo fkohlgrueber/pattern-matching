@@ -3,11 +3,13 @@
 extern crate syntax;
 
 pub mod ast_match;
+pub mod pattern_tree;
+pub mod matchers;
 
 use itertools::Itertools;
 use itertools::repeat_n;
 
-use pattern_tree::matchers::*;
+use crate::matchers::*;
 
 // Trait that has to be implemented on all types that can be used in a pattern tree
 pub trait PatternTreeNode {}

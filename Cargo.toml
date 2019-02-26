@@ -6,7 +6,6 @@ edition = "2018"
 
 [dependencies]
 pattern = { path = "./pattern" }
-pattern_tree = { path = "./pattern_tree" }
 pattern_match = { path = "./pattern_match" }
 lazy_static = "1.2.0"
 

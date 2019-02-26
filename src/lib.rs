@@ -56,9 +56,11 @@ impl MatchAssociations for Ast {
     type BlockType = AstBlock;
 }
 */
-use pattern_tree::matchers::Alt;
+use pattern_match::matchers::Alt;
 use pattern_match::IsMatch;
 use pattern_match::ast_match::Ast;
+
+use pattern_match::pattern_tree;
 
 pattern!(
     PAT: Alt<pattern_tree::Expr> = 

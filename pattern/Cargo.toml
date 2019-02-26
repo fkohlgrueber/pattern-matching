@@ -5,7 +5,7 @@ authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-pattern_tree = { path = "../pattern_tree" }
+pattern_match = { path = "../pattern_match" }
 syn = {version = "0.15", features = ["full", "extra-traits"]}
 quote = "0.6"
 proc-macro2 = "0.4.26"

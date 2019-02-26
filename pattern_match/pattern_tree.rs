@@ -4,8 +4,6 @@ use gen_pattern_tree::gen_pattern_tree;
 
 use lazy_static::lazy_static;
 
-pub mod matchers;
-
 use crate::matchers::*;
 
 use std::fmt::Debug;

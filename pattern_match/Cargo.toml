@@ -5,7 +5,8 @@ authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-pattern_tree = { path = "../pattern_tree" }
+gen_pattern_tree = { path = "../gen_pattern_tree" }
+lazy_static = "1.2.0"
 itertools = "0.8.0"
 
 [lib]
