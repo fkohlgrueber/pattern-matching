@@ -1,0 +1,12 @@
+[package]
+name = "pattern_match"
+version = "0.1.0"
+authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+pattern_tree = { path = "../pattern_tree" }
+itertools = "0.8.0"
+
+[lib]
+path = "pattern_match.rs"

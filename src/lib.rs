@@ -1,9 +1,7 @@
 #![recursion_limit="256"]
 
 use pattern::pattern;
-
-use lazy_static::lazy_static;
-
+/*
 #[derive(Debug, Default)]
 pub struct Res<'o, A>
 where A: MatchAssociations {
@@ -36,6 +34,10 @@ pub enum AstStmt {
     Semi(AstExpr),
 }
 
+#[derive(Debug)]
+pub enum AstBlock {
+    Block(AstStmt),
+}
 
 // IMPL
 use pattern_tree::MatchAssociations;
@@ -47,9 +49,12 @@ impl MatchAssociations for Ast {
     type Char = char;
     type Int = u128;
     type Stmt = AstStmt;
+    type BlockType = AstBlock;
 }
-
-use pattern_tree::matchers::*;
+*/
+use pattern_tree::matchers::Alt;
+use pattern_match::IsMatch;
+use pattern_match::ast_match::Ast;
 
 pattern!(
     PAT: Alt<pattern_tree::Expr> = 
@@ -61,8 +66,9 @@ pattern!(
 fn test() {
     //println!("THIS IS THE PATTERN: {:?}", *PAT);
 
-    let ast_node = AstExpr::Lit(AstLit::Bool(false));
+    
+    //let ast_node = AstExpr::Lit(AstLit::Bool(false));
 
-    PAT(&ast_node);
+    //PAT(&ast_node);
 }
 
