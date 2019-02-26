@@ -16,14 +16,6 @@ impl<'o> MatchAssociations<'o> for Ast {
     type BlockType = ast::Block;
 }
 
-impl<'cx, 'o, Cx> IsMatch<'cx, 'o, Cx, Expr<'cx, 'o, Cx, Ast>> for ast::Expr {
-    fn is_match(&self, cx: &'cx mut Cx, other: &'o Expr<'cx, 'o, Cx, Ast>) -> (bool, &'cx mut Cx) {
-        // TODO: replace with real implementation
-        (false, cx)
-        //other.is_match(cx, self)
-    }
-}
-
 impl<'cx, 'o, Cx> IsMatch<'cx, 'o, Cx, ast::LitKind> for Lit<'cx, 'o, Cx, Ast> {
     fn is_match(&self, cx: &'cx mut Cx, other: &'o ast::LitKind) -> (bool, &'cx mut Cx) {
         match (self, other) {
