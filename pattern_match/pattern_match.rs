@@ -36,6 +36,10 @@ where Self: Sized {
     type BlockType: Debug;
 }
 
+pub trait MatchTarget {
+    type T: MatchAssociations;
+}
+
 // Main trait for matching
 pub trait IsMatch<'cx, 'o, Cx, O: ?Sized> {
     fn is_match(&self, cx: &'cx mut Cx, other: &'o O) -> (bool, &'cx mut Cx);

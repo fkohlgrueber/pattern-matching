@@ -12,6 +12,7 @@ use pattern_match::ast_match::Ast;
 
 use pattern_match::pattern_tree;
 use pattern_match::MatchAssociations;
+use pattern_match::MatchTarget;
 
 /*
 pattern!(
@@ -30,16 +31,18 @@ where
     var: Option<&'o A::Bool>,
 }
 
-fn PAT<'cx, 'o, A>(node: &'o <A as MatchAssociations>::Expr) -> Option<PATStruct<'o, A>> 
+fn PAT<'cx, 'o, A, P>(node: &'o P) -> Option<PATStruct<'o, A>> 
 where 
+    P: MatchTarget<T=A>,
     A: MatchAssociations,
     for<'cx2, 'o2> pattern_tree::Expr<'cx2, 'o2, PATStruct<'o2, A>, A>: IsMatch<
         'cx2, 
         'o2, 
         PATStruct<'o2, A>, 
-        <A as MatchAssociations>::Expr
+        P
     >,
     A::Char: 'o,
+    A::Expr: 'o,
     A::Bool: 'o,
     A::Int: 'o,
     A::Stmt: 'o,
@@ -102,7 +105,7 @@ fn test() {
     
     //let ast_node = AstExpr::Lit(AstLit::Bool(false));
 
-    let res: Option<PATStruct<Ast>> = PAT(&real_ast_node);
+    let res = PAT(&real_ast_node);
     dbg!(res);
 }
 

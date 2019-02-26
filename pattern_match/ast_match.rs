@@ -1,6 +1,6 @@
 
 use crate::pattern_tree::*;
-use crate::{IsMatch, Reduce, PatternTreeNode, MatchAssociations};
+use crate::{IsMatch, Reduce, PatternTreeNode, MatchAssociations, MatchTarget};
 use syntax::ast;
 
 #[derive(Debug)]
@@ -14,6 +14,10 @@ impl MatchAssociations for Ast {
     type Int = u128;
     type Stmt = ast::Stmt;
     type BlockType = ast::Block;
+}
+
+impl MatchTarget for ast::Expr {
+    type T = Ast;
 }
 
 impl<'cx, 'o, Cx> IsMatch<'cx, 'o, Cx, Expr<'cx, 'o, Cx, Ast>> for ast::Expr {
