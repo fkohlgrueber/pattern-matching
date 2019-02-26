@@ -25,14 +25,15 @@ impl IsMatchEquality for bool {}
 
 // MatchAssociations
 
-pub trait MatchAssociations {
-    type Expr: Debug;
-    type Lit: Debug;
-    type Bool: Debug;
-    type Char: Debug;
-    type Int: Debug;
-    type Stmt: Debug;
-    type BlockType: Debug;
+pub trait MatchAssociations<'cx, 'o, Cx: 'cx> 
+where Self: Sized {
+    type Expr: Debug + IsMatch<'cx, 'o, Cx, pattern_tree::Expr<'cx, 'o, Cx, Self>> + 'o;
+    type Lit: Debug + 'o;
+    type Bool: Debug + 'o;
+    type Char: Debug + 'o;
+    type Int: Debug + 'o;
+    type Stmt: Debug + 'o;
+    type BlockType: Debug + 'o;
 }
 
 // Main trait for matching

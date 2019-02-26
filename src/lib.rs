@@ -5,68 +5,72 @@
 extern crate syntax;
 
 use pattern::pattern;
-/*
-#[derive(Debug, Default)]
-pub struct Res<'o, A>
-where A: MatchAssociations {
-    var: Option<&'o A::Bool>,
-    var2: Option<&'o A::Lit>,
-    var3: Option<&'o A::Expr>,
-}
 
-#[derive(Debug)]
-pub struct Ast {}
-
-#[derive(Debug)]
-pub enum AstExpr {
-    Lit(AstLit),
-    Array(Vec<AstExpr>),
-    Block(Vec<AstStmt>),
-    If(Box<AstExpr>, Vec<AstStmt>, Box<Option<AstExpr>>)
-}
-
-#[derive(Debug)]
-pub enum AstLit {
-    Char(char),
-    Bool(bool),
-    Int(u128),
-}
-
-#[derive(Debug)]
-pub enum AstStmt {
-    Expr(AstExpr),
-    Semi(AstExpr),
-}
-
-#[derive(Debug)]
-pub enum AstBlock {
-    Block(AstStmt),
-}
-
-// IMPL
-use pattern_tree::MatchAssociations;
-
-impl MatchAssociations for Ast {
-    type Expr = AstExpr;
-    type Lit = AstLit;
-    type Bool = bool;
-    type Char = char;
-    type Int = u128;
-    type Stmt = AstStmt;
-    type BlockType = AstBlock;
-}
-*/
 use pattern_match::matchers::Alt;
 use pattern_match::IsMatch;
 use pattern_match::ast_match::Ast;
 
 use pattern_match::pattern_tree;
 
+/*
 pattern!(
     PAT: Alt<pattern_tree::Expr> = 
         //Array( Lit(Bool(_#var|_)#var2)*#var3 )
         Lit(Bool(_#var|_)#var2)
-);
+);*/
+
+
+#[derive(Debug)]
+pub struct PATStruct<'cx, 'o, A>
+where
+    A: pattern_match::MatchAssociations<'cx, 'o, Self>,
+{
+    var2: Option<&'o A::Lit>,
+    var: Option<&'o A::Bool>,
+}
+
+fn PAT<'cx, 'o>(node: &'o <Ast as pattern_match::MatchAssociations<'cx, 'o, PATStruct<'cx, 'o, Ast>>>::Expr) -> Option<PATStruct<'cx, 'o, Ast>> {
+    let pattern: Alt<
+        '_, 
+        '_, 
+        pattern_tree::Expr<'_, '_, PATStruct<Ast>, Ast>, 
+        PATStruct<Ast>, 
+        <Ast as pattern_match::MatchAssociations<'cx, 'o, PATStruct<'cx, 'o, Ast>>>::Expr, 
+    > 
+    = pattern_match::matchers::Alt::Elmt(Box::new(pattern_tree::variants::Lit(
+        pattern_match::matchers::Alt::Named(
+            Box::new(pattern_match::matchers::Alt::Elmt(Box::new(
+                pattern_tree::variants::Bool(pattern_match::matchers::Alt::Alt(
+                    Box::new(pattern_match::matchers::Alt::Named(
+                        Box::new(pattern_match::matchers::Alt::Any),
+                        |cx, elmt| {
+                            cx.var = Some(elmt);
+                            cx
+                        },
+                    )),
+                    Box::new(pattern_match::matchers::Alt::Any),
+                )),
+            ))),
+            |cx, elmt| {
+                cx.var2 = Some(elmt);
+                cx
+            },
+        ),
+    )));
+    let mut cx = PATStruct {
+        var2: None,
+        var: None,
+    };
+    let (r, cx_out) = pattern.is_match(&mut cx, node);
+    if r {
+        Some(cx)
+    } else {
+        None
+    }
+}
+
+
+
 
 
 #[test]

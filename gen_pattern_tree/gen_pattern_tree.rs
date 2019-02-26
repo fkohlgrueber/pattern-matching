@@ -66,7 +66,7 @@ impl ToTokens for PatternTreeNode {
         tokens.extend(quote!(
             #[derive(Debug)]
             pub enum #name<'cx, 'o, Cx, A>
-            where A: MatchAssociations {
+            where A: MatchAssociations<'cx, 'o, Cx> {
                 #(#variants),*
             }
         ))
