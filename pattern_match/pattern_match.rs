@@ -5,6 +5,7 @@ extern crate syntax;
 pub mod ast_match;
 pub mod pattern_tree;
 pub mod matchers;
+pub mod dummy_ast_match;
 
 use std::fmt::Debug;
 use itertools::Itertools;

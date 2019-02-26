@@ -36,9 +36,14 @@ fn test() {
     //println!("THIS IS THE PATTERN: {:?}", *PAT);
 
     
-    //let ast_node = AstExpr::Lit(AstLit::Bool(false));
+    use pattern_match::dummy_ast_match::*;
+
+    let ast_node = DummyExpr::Lit(DummyLit::Bool(false));
 
     let res = PAT(&real_ast_node);
     dbg!(res);
+
+    let res2 = PAT(&ast_node);
+    dbg!(res2);
 }
 
