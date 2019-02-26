@@ -25,19 +25,15 @@ impl IsMatchEquality for bool {}
 
 // MatchAssociations
 
-pub trait MatchAssociations 
+pub trait MatchAssociations<'o> 
 where Self: Sized {
-    type Expr: Debug;
-    type Lit: Debug;
-    type Bool: Debug;
-    type Char: Debug;
-    type Int: Debug;
-    type Stmt: Debug;
-    type BlockType: Debug;
-}
-
-pub trait MatchTarget {
-    type T: MatchAssociations;
+    type Expr: 'o + Debug;
+    type Lit: 'o + Debug;
+    type Bool: 'o + Debug;
+    type Char: 'o + Debug;
+    type Int: 'o + Debug;
+    type Stmt: 'o + Debug;
+    type BlockType: 'o + Debug;
 }
 
 // Main trait for matching

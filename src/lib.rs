@@ -8,11 +8,9 @@ use pattern::pattern;
 
 use pattern_match::matchers::Alt;
 use pattern_match::IsMatch;
-use pattern_match::ast_match::Ast;
 
 use pattern_match::pattern_tree;
 use pattern_match::MatchAssociations;
-use pattern_match::MatchTarget;
 
 /*
 pattern!(
@@ -25,28 +23,24 @@ pattern!(
 #[derive(Debug)]
 pub struct PATStruct<'o, A>
 where
-    A: MatchAssociations,
+    A: MatchAssociations<'o>,
 {
     var2: Option<&'o A::Lit>,
     var: Option<&'o A::Bool>,
 }
 
-fn PAT<'cx, 'o, A, P>(node: &'o P) -> Option<PATStruct<'o, A>> 
+use std::fmt::Debug;
+
+fn PAT<'o, A, P>(node: &'o P) -> Option<PATStruct<'o, A>> 
 where 
-    P: MatchTarget<T=A>,
-    A: MatchAssociations,
-    for<'cx2, 'o2> pattern_tree::Expr<'cx2, 'o2, PATStruct<'o2, A>, A>: IsMatch<
-        'cx2, 
-        'o2, 
-        PATStruct<'o2, A>, 
+    A: MatchAssociations<'o, Expr=P>,
+    P: Debug,
+    for<'cx> pattern_tree::Expr<'cx, 'o, PATStruct<'o, A>, A>: IsMatch<
+        'cx, 
+        'o, 
+        PATStruct<'o, A>, 
         P
     >,
-    A::Char: 'o,
-    A::Expr: 'o,
-    A::Bool: 'o,
-    A::Int: 'o,
-    A::Stmt: 'o,
-    A::BlockType: 'o,
 {
     let pattern: pattern_tree::Expr<'_, '_, PATStruct<A>, A>
     = pattern_tree::variants::Lit(
@@ -73,7 +67,7 @@ where
         var2: None,
         var: None,
     };
-    let (r, cx_out) = pattern.is_match(&mut cx, node);
+    let (r, _cx_out) = pattern.is_match(&mut cx, node);
     if r {
         Some(cx)
     } else {

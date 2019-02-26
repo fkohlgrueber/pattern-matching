@@ -1,12 +1,12 @@
 
 use crate::pattern_tree::*;
-use crate::{IsMatch, Reduce, PatternTreeNode, MatchAssociations, MatchTarget};
+use crate::{IsMatch, Reduce, PatternTreeNode, MatchAssociations};
 use syntax::ast;
 
 #[derive(Debug)]
 pub struct Ast {}
 
-impl MatchAssociations for Ast {
+impl<'o> MatchAssociations<'o> for Ast {
     type Expr = ast::Expr;
     type Lit = ast::Lit;
     type Bool = bool;
@@ -14,10 +14,6 @@ impl MatchAssociations for Ast {
     type Int = u128;
     type Stmt = ast::Stmt;
     type BlockType = ast::Block;
-}
-
-impl MatchTarget for ast::Expr {
-    type T = Ast;
 }
 
 impl<'cx, 'o, Cx> IsMatch<'cx, 'o, Cx, Expr<'cx, 'o, Cx, Ast>> for ast::Expr {
@@ -101,10 +97,10 @@ impl<'cx, 'o, Cx> IsMatch<'cx, 'o, Cx, ast::Lit> for Lit<'cx, 'o, Cx, Ast> {
     }
 }
 
-impl<'cx, 'o, Cx, A> PatternTreeNode for Lit<'cx, 'o, Cx, A> where A: MatchAssociations {}
-impl<'cx, 'o, Cx, A> PatternTreeNode for Expr<'cx, 'o, Cx, A> where A: MatchAssociations {}
-impl<'cx, 'o, Cx, A> PatternTreeNode for Stmt<'cx, 'o, Cx, A> where A: MatchAssociations {}
-impl<'cx, 'o, Cx, A> PatternTreeNode for BlockType<'cx, 'o, Cx, A> where A: MatchAssociations {}
+impl<'cx, 'o, Cx, A> PatternTreeNode for Lit<'cx, 'o, Cx, A> where A: MatchAssociations<'o> {}
+impl<'cx, 'o, Cx, A> PatternTreeNode for Expr<'cx, 'o, Cx, A> where A: MatchAssociations<'o> {}
+impl<'cx, 'o, Cx, A> PatternTreeNode for Stmt<'cx, 'o, Cx, A> where A: MatchAssociations<'o> {}
+impl<'cx, 'o, Cx, A> PatternTreeNode for BlockType<'cx, 'o, Cx, A> where A: MatchAssociations<'o> {}
 
 
 impl Reduce for syntax::ast::Stmt {
