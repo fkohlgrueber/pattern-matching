@@ -11,6 +11,7 @@ use pattern_match::IsMatch;
 use pattern_match::ast_match::Ast;
 
 use pattern_match::pattern_tree;
+use pattern_match::MatchAssociations;
 
 /*
 pattern!(
@@ -21,23 +22,31 @@ pattern!(
 
 
 #[derive(Debug)]
-pub struct PATStruct<'cx, 'o, A>
+pub struct PATStruct<'o, A>
 where
-    A: pattern_match::MatchAssociations<'cx, 'o, Self>,
+    A: MatchAssociations,
 {
     var2: Option<&'o A::Lit>,
     var: Option<&'o A::Bool>,
 }
 
-fn PAT<'cx, 'o>(node: &'o <Ast as pattern_match::MatchAssociations<'cx, 'o, PATStruct<'cx, 'o, Ast>>>::Expr) -> Option<PATStruct<'cx, 'o, Ast>> {
-    let pattern: Alt<
-        '_, 
-        '_, 
-        pattern_tree::Expr<'_, '_, PATStruct<Ast>, Ast>, 
-        PATStruct<Ast>, 
-        <Ast as pattern_match::MatchAssociations<'cx, 'o, PATStruct<'cx, 'o, Ast>>>::Expr, 
-    > 
-    = pattern_match::matchers::Alt::Elmt(Box::new(pattern_tree::variants::Lit(
+fn PAT<'cx, 'o, A>(node: &'o <A as MatchAssociations>::Expr) -> Option<PATStruct<'o, A>> 
+where 
+    A: MatchAssociations,
+    for<'cx2, 'o2> pattern_tree::Expr<'cx2, 'o2, PATStruct<'o2, A>, A>: IsMatch<
+        'cx2, 
+        'o2, 
+        PATStruct<'o2, A>, 
+        <A as MatchAssociations>::Expr
+    >,
+    A::Char: 'o,
+    A::Bool: 'o,
+    A::Int: 'o,
+    A::Stmt: 'o,
+    A::BlockType: 'o,
+{
+    let pattern: pattern_tree::Expr<'_, '_, PATStruct<A>, A>
+    = pattern_tree::variants::Lit(
         pattern_match::matchers::Alt::Named(
             Box::new(pattern_match::matchers::Alt::Elmt(Box::new(
                 pattern_tree::variants::Bool(pattern_match::matchers::Alt::Alt(
@@ -56,7 +65,7 @@ fn PAT<'cx, 'o>(node: &'o <Ast as pattern_match::MatchAssociations<'cx, 'o, PATS
                 cx
             },
         ),
-    )));
+    );
     let mut cx = PATStruct {
         var2: None,
         var: None,
@@ -93,6 +102,7 @@ fn test() {
     
     //let ast_node = AstExpr::Lit(AstLit::Bool(false));
 
-    dbg!(PAT(&real_ast_node));
+    let res: Option<PATStruct<Ast>> = PAT(&real_ast_node);
+    dbg!(res);
 }
 

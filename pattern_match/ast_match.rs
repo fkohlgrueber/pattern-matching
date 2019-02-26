@@ -6,7 +6,7 @@ use syntax::ast;
 #[derive(Debug)]
 pub struct Ast {}
 
-impl<'cx, 'o, Cx: 'cx> MatchAssociations<'cx, 'o, Cx> for Ast {
+impl MatchAssociations for Ast {
     type Expr = ast::Expr;
     type Lit = ast::Lit;
     type Bool = bool;
@@ -97,10 +97,10 @@ impl<'cx, 'o, Cx> IsMatch<'cx, 'o, Cx, ast::Lit> for Lit<'cx, 'o, Cx, Ast> {
     }
 }
 
-impl<'cx, 'o, Cx, A> PatternTreeNode for Lit<'cx, 'o, Cx, A> where A: MatchAssociations<'cx, 'o, Cx> {}
-impl<'cx, 'o, Cx, A> PatternTreeNode for Expr<'cx, 'o, Cx, A> where A: MatchAssociations<'cx, 'o, Cx> {}
-impl<'cx, 'o, Cx, A> PatternTreeNode for Stmt<'cx, 'o, Cx, A> where A: MatchAssociations<'cx, 'o, Cx> {}
-impl<'cx, 'o, Cx, A> PatternTreeNode for BlockType<'cx, 'o, Cx, A> where A: MatchAssociations<'cx, 'o, Cx> {}
+impl<'cx, 'o, Cx, A> PatternTreeNode for Lit<'cx, 'o, Cx, A> where A: MatchAssociations {}
+impl<'cx, 'o, Cx, A> PatternTreeNode for Expr<'cx, 'o, Cx, A> where A: MatchAssociations {}
+impl<'cx, 'o, Cx, A> PatternTreeNode for Stmt<'cx, 'o, Cx, A> where A: MatchAssociations {}
+impl<'cx, 'o, Cx, A> PatternTreeNode for BlockType<'cx, 'o, Cx, A> where A: MatchAssociations {}
 
 
 impl Reduce for syntax::ast::Stmt {
