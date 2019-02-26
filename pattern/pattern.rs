@@ -278,9 +278,9 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     ).collect::<Vec<_>>();
 
     let pattern_ty = match &root_ty {
-        Some(Ty::Alt) => quote!( Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<Ast>, Ast>, #struct_name<Ast>, <Ast as pattern_tree::MatchAssociations>::Expr> ),
-        Some(Ty::Seq) => quote!( Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<Ast>, Ast>, #struct_name<Ast>, <Ast as pattern_tree::MatchAssociations>::Expr> ),
-        Some(Ty::Opt) => quote!( Opt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<Ast>, Ast>, #struct_name<Ast>, <Ast as pattern_tree::MatchAssociations>::Expr> ),
+        Some(Ty::Alt) => quote!( Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<Ast>, Ast>, #struct_name<Ast>, <Ast as pattern_match::MatchAssociations>::Expr> ),
+        Some(Ty::Seq) => quote!( Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<Ast>, Ast>, #struct_name<Ast>, <Ast as pattern_match::MatchAssociations>::Expr> ),
+        Some(Ty::Opt) => quote!( Opt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<Ast>, Ast>, #struct_name<Ast>, <Ast as pattern_match::MatchAssociations>::Expr> ),
         None => quote!( pattern_tree::Expr<'_, '_, #struct_name<Ast>, Ast> ),
     };
 
@@ -292,11 +292,11 @@ pub fn pattern(item: TokenStream) -> TokenStream {
 
         #[derive(Debug, Default)]
         pub struct #struct_name<'o, A>
-        where A: pattern_tree::MatchAssociations {
+        where A: pattern_match::MatchAssociations {
             #(#result_items)*
         }
         
-        fn #name (node: &<Ast as pattern_tree::MatchAssociations>::Expr) -> Option<#struct_name<Ast>> {
+        fn #name (node: &<Ast as pattern_match::MatchAssociations>::Expr) -> Option<#struct_name<Ast>> {
             let pattern: #pattern_ty = #tokens;
             //dbg!(pattern);
 

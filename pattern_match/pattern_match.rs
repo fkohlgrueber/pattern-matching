@@ -6,6 +6,7 @@ pub mod ast_match;
 pub mod pattern_tree;
 pub mod matchers;
 
+use std::fmt::Debug;
 use itertools::Itertools;
 use itertools::repeat_n;
 
@@ -21,6 +22,18 @@ impl PatternTreeNode for bool {}
 impl IsMatchEquality for u128 {}
 impl IsMatchEquality for char {}
 impl IsMatchEquality for bool {}
+
+// MatchAssociations
+
+pub trait MatchAssociations {
+    type Expr: Debug;
+    type Lit: Debug;
+    type Bool: Debug;
+    type Char: Debug;
+    type Int: Debug;
+    type Stmt: Debug;
+    type BlockType: Debug;
+}
 
 // Main trait for matching
 pub trait IsMatch<'cx, 'o, Cx, O: ?Sized> {

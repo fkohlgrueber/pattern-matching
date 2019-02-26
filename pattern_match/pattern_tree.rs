@@ -5,18 +5,7 @@ use lazy_static::lazy_static;
 
 use crate::matchers::*;
 
-use std::fmt::Debug;
-
-pub trait MatchAssociations {
-    type Expr: Debug;
-    type Lit: Debug;
-    type Bool: Debug;
-    type Char: Debug;
-    type Int: Debug;
-    type Stmt: Debug;
-    type BlockType: Debug;
-}
-
+use crate::MatchAssociations;
 
 gen_pattern_tree!();
 
