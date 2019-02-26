@@ -278,10 +278,10 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     ).collect::<Vec<_>>();
 
     let pattern_ty = match &root_ty {
-        Some(Ty::Alt) => quote!( Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<Ast>, Ast>, #struct_name<Ast>, <Ast as pattern_match::MatchAssociations>::Expr> ),
-        Some(Ty::Seq) => quote!( Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<Ast>, Ast>, #struct_name<Ast>, <Ast as pattern_match::MatchAssociations>::Expr> ),
-        Some(Ty::Opt) => quote!( Opt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<Ast>, Ast>, #struct_name<Ast>, <Ast as pattern_match::MatchAssociations>::Expr> ),
-        None => quote!( pattern_tree::Expr<'_, '_, #struct_name<Ast>, Ast> ),
+        Some(Ty::Alt) => quote!( Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
+        Some(Ty::Seq) => quote!( Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
+        Some(Ty::Opt) => quote!( Opt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
+        None => quote!( pattern_tree::Expr<'_, '_, #struct_name<A>, A> ),
     };
 
     let tokens = match root_ty {
@@ -290,13 +290,23 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     };
     quote!(
 
-        #[derive(Debug, Default)]
+        #[derive(Debug)]
         pub struct #struct_name<'o, A>
-        where A: pattern_match::MatchAssociations {
+        where A: pattern_match::MatchAssociations<'o> {
             #(#result_items)*
         }
         
-        fn #name (node: &<Ast as pattern_match::MatchAssociations>::Expr) -> Option<#struct_name<Ast>> {
+        fn #name <'o, A, P> (node: &'o P) -> Option<#struct_name<'o, A>> 
+        where 
+            A: pattern_match::MatchAssociations<'o, Expr=P>,
+            P: std::fmt::Debug,
+            for<'cx> pattern_tree::Expr<'cx, 'o, #struct_name<'o, A>, A>: IsMatch<
+                'cx, 
+                'o, 
+                #struct_name<'o, A>, 
+                P
+            >,
+        {
             let pattern: #pattern_ty = #tokens;
             //dbg!(pattern);
 
