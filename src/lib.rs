@@ -10,8 +10,6 @@ use pattern_match::matchers::Alt;
 use pattern_match::IsMatch;
 
 use pattern_match::pattern_tree;
-use pattern_match::MatchAssociations;
-
 
 pattern!(
     PAT: Alt<pattern_tree::Expr> = 
