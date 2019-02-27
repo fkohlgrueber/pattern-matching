@@ -48,7 +48,7 @@ pattern!{
 
 pattern!(
     PAT_SIMPLE: Alt<Expr> = 
-        Lit(Bool(false)) |
+        Lit(Bool(false#test)) |
         Array(
             Lit(Char('a')) * 
             Lit(Char('b')) {1,3} 
@@ -63,8 +63,7 @@ pattern!(
 
 pattern!(
     PAT: Alt<Expr> = 
-        //Array( Lit(Bool(_#var|_)#var2)*#var3 )
-        Lit(Bool(_#var|false)#var2)
+        Array( Lit(Bool(_#var|_)#var2)*#var3 )
 );
 
 

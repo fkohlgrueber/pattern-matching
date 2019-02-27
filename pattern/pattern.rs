@@ -1,7 +1,6 @@
 #![recursion_limit="256"]
 use std::collections::HashMap;
 use syn::Ident;
-use std::fmt::Display;
 
 
 extern crate proc_macro;
@@ -24,16 +23,6 @@ enum ResTy<T> {
     Opt(Box<ResTy<T>>)
 }
 
-impl Display for ResTy<Ident> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::result::Result<(), std::fmt::Error> {
-        match self {
-            ResTy::Elmt(i) => write!(f, "{}", i.to_string()),
-            ResTy::Seq(e) => write!(f, "Vec<{}>", e),
-            ResTy::Opt(e) => write!(f, "Option<{}>", e),
-        }
-    }
-}
-
 #[derive(Debug, Clone)]
 struct PatTy {
     inner_ty: Ident,
@@ -51,8 +40,6 @@ fn to_res_ty(input: &PatTy) -> ResTy<Ident> {
 fn get_named_subpattern_types(input: &parse::Expr, ty: &PatTy) -> HashMap<Ident, ResTy<Ident>> {
     match input {
         parse::Expr::Node(id, args) => {
-            // TODO: continue here!
-            
             let tys = TYPES.get(id.to_string().as_str()).expect("Unknown Node");
             if tys.len() != args.len() { panic!("Wrong number of arguments") }
             let hms = args.iter().zip(tys.iter()).map(
@@ -76,24 +63,42 @@ fn get_named_subpattern_types(input: &parse::Expr, ty: &PatTy) -> HashMap<Ident,
             let a_hm = get_named_subpattern_types(a, ty);
             let b_hm = get_named_subpattern_types(b, ty);
             let mut res = HashMap::new();
-            
+
             // add unique elements
+            // if an element is only present on one branch, it's type needs to be Option<_>
             for (i, i_ty) in &a_hm {
                 if !b_hm.contains_key(&i) {
-                    res.insert((*i).clone(), ResTy::Opt(Box::new((*i_ty).clone())));
+                    let res_ty = match &i_ty {
+                        // don't wrap with Option<_> if i_ty is Option<_> already
+                        ResTy::Opt(_) => i_ty.clone(),
+                        _ => ResTy::Opt(Box::new((*i_ty).clone()))
+                    };
+                    res.insert((*i).clone(), res_ty);
                 }
             }
             for (i, i_ty) in &b_hm {
                 if !a_hm.contains_key(&i) {
-                    res.insert((*i).clone(), ResTy::Opt(Box::new((*i_ty).clone())));
+                    let res_ty = match &i_ty {
+                        // don't wrap with Option<_> if i_ty is Option<_> already
+                        ResTy::Opt(_) => i_ty.clone(),
+                        _ => ResTy::Opt(Box::new((*i_ty).clone()))
+                    };
+                    res.insert((*i).clone(), res_ty);
                 }
             }
-
+            
             // elmts that are in both hashmaps
             for (i, i_ty) in &a_hm {
                 if let Some(j_ty) = b_hm.get(&i) {
+                    // exact equality
                     if i_ty == j_ty {
                         res.insert((*i).clone(), (*i_ty).clone());
+                    // i_ty = Option<j_ty>
+                    } else if i_ty == &ResTy::Opt(Box::new((*j_ty).clone())) {
+                        res.insert((*i).clone(), (*i_ty).clone());
+                    // Option<i_ty> = j_ty
+                    } else if &ResTy::Opt(Box::new((*i_ty).clone())) == j_ty {
+                        res.insert((*i).clone(), (*j_ty).clone());
                     } else {
                         panic!("Multiple occurances of the same #name need to have the same type.")
                     }
@@ -142,7 +147,7 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     // parse the pattern
     let Pattern { name, ty, repeat_ty, node } = syn::parse_macro_input!(item as Pattern);
     
-    // Name of the result struct is <pattern_name>Struct, e.g. PatStruct
+    // name of the result struct is <pattern_name>Struct, e.g. PatStruct
     let struct_name = proc_macro2::Ident::new(&(name.to_string() + "Struct"), proc_macro2::Span::call_site());
     
     // extract the type (Alt<_>, Seq<_>, Opt<_> or _)
