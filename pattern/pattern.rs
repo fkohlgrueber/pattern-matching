@@ -29,11 +29,29 @@ struct PatTy {
     ty: Ty
 }
 
-fn to_res_ty(input: &PatTy) -> ResTy<Ident> {
-    match &input.ty {
-        Ty::Alt => ResTy::Elmt(input.inner_ty.clone()),
-        Ty::Seq => ResTy::Seq(Box::new(ResTy::Elmt(input.inner_ty.clone()))),
-        Ty::Opt => ResTy::Opt(Box::new(ResTy::Elmt(input.inner_ty.clone()))),
+fn get_repeat_type(input: &parse::Expr) -> Ty {
+    match input {
+        parse::Expr::Any => Ty::Alt,
+        parse::Expr::Empty => Ty::Seq,
+        parse::Expr::Lit(_) => Ty::Alt,
+        parse::Expr::Node(_, _) => Ty::Alt,
+        parse::Expr::Alt(a, b) => {
+            match (get_repeat_type(a), get_repeat_type(b)) {
+                (Ty::Seq, _) | (_, Ty::Seq) => Ty::Seq,
+                (Ty::Opt, _) | (_, Ty::Opt) => Ty::Opt,
+                (Ty::Alt, Ty::Alt) => Ty::Alt
+            }
+        },
+        parse::Expr::Seq(_, _) => Ty::Seq,
+        parse::Expr::Repeat(e, r) => {
+            let c = get_repeat_type(e);
+            match (c, r) {
+                (Ty::Alt, RepeatKind::Optional) => Ty::Opt,
+                (Ty::Opt, RepeatKind::Optional) => Ty::Opt,
+                _ => Ty::Seq
+            }
+        },
+        parse::Expr::Named(e, _) => get_repeat_type(e)
     }
 }
 
@@ -109,7 +127,20 @@ fn get_named_subpattern_types(input: &parse::Expr, ty: &PatTy) -> HashMap<Ident,
         },
         parse::Expr::Named(e, id) => {
             let mut h = get_named_subpattern_types(e, ty);
-            h.insert(id.clone(), to_res_ty(ty));
+            
+            // inner type (e.g. a pattern_tree node) is provided by parameter (top-down)
+            let inner_ty = &ty.inner_ty;
+
+            // repeat type (single, optional, multiple) is determined by looking at own children (bottom-up)
+            let repeat_type = get_repeat_type(e);
+
+            let res_ty = match repeat_type {
+                Ty::Alt => ResTy::Elmt(inner_ty.clone()),
+                Ty::Seq => ResTy::Seq(Box::new(ResTy::Elmt(inner_ty.clone()))),
+                Ty::Opt => ResTy::Opt(Box::new(ResTy::Elmt(inner_ty.clone()))),
+            };
+            
+            h.insert(id.clone(), res_ty);
             h
         },
         parse::Expr::Lit(_l) => HashMap::new(),
@@ -160,7 +191,7 @@ pub fn pattern(item: TokenStream) -> TokenStream {
 
     let result_items = named_subpattern_types.iter().map(
         |(k, v)| match v {
-            ResTy::Elmt(e) => quote!( #k: Option<&'o A::#e>, ),
+            ResTy::Elmt(e) => quote!( #k: &'o A::#e, ),
             ResTy::Opt(o) => match &**o {
                 ResTy::Elmt(e) => quote!( #k: Option<&'o A::#e>, ),
                 _ => panic!("This is not implemented yet!!")
