@@ -1,13 +1,8 @@
-[package]
-name = "parse_pattern"
-version = "0.1.0"
-authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
-edition = "2018"
+[workspace]
 
-[dependencies]
-pattern = { path = "./pattern" }
-pattern_match = { path = "./pattern_match" }
-lazy_static = "1.2.0"
-
-[lib]
-doctest = false
+members = [
+    "gen_pattern_tree",
+    "pattern",
+    "pattern_match",
+    "test"
+]

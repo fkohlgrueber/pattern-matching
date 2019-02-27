@@ -13,3 +13,4 @@ lazy_static = "1.2.0"
 [lib]
 proc-macro = true
 path = "gen_pattern_tree.rs"
+doctest = false

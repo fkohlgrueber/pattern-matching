@@ -1,14 +1,14 @@
 [package]
-name = "pattern_match"
+name = "test"
 version = "0.1.0"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-gen_pattern_tree = { path = "../gen_pattern_tree" }
+pattern = { path = "../pattern" }
+pattern_match = { path = "../pattern_match" }
 lazy_static = "1.2.0"
-itertools = "0.8.0"
 
 [lib]
-path = "pattern_match.rs"
 doctest = false
+path = "test.rs"

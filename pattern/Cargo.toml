@@ -13,3 +13,4 @@ proc-macro2 = "0.4.26"
 [lib]
 proc-macro = true
 path = "pattern.rs"
+doctest = false
