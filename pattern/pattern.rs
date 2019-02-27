@@ -134,74 +134,6 @@ fn get_named_subpattern_types(input: &parse::Expr, ty: &PatTy) -> HashMap<Ident,
         parse::Expr::Repeat(e, _r) => get_named_subpattern_types(e, ty),
     }
 }
-/*
-fn print_hm(input: &HashMap<Ident, ResTy<Ident>>) {
-    println!("struct Result {{");
-    for (k, v) in input {
-        println!("    {}: {}", k.to_string(), v)
-    }
-    println!("}}\n")
-}*/
-
-fn get_simple_path(ty: &syn::Type) -> Option<&Ident> {
-    if let syn::Type::Path(p) = &ty {
-        if let Some(ps) = p.path.segments.last() {
-            Some(&ps.value().ident)
-        } else {
-            None
-        }
-    } else {
-        None
-    }
-}
-
-fn get_inner_ty(abga: &syn::AngleBracketedGenericArguments) -> Option<&Ident> {
-    for ga in &abga.args {
-        if let syn::GenericArgument::Lifetime(_) = ga {
-            continue;
-        } else if let syn::GenericArgument::Type(t) = ga {
-            return get_simple_path(&t);
-        } else {
-            return None;
-        }
-    }
-    None
-}
-
-fn get_pat_ty(ty: &syn::Type) -> Option<PatTy> {
-    if let syn::Type::Path(p) = &ty {
-        if let Some(ps) = p.path.segments.last() {
-            let ps = ps.value();
-            let id = &ps.ident;
-            match &ps.arguments {
-                syn::PathArguments::AngleBracketed(abga) => 
-                    Some(PatTy {
-                        inner_ty: get_inner_ty(&abga).unwrap().clone(),
-                        ty: {
-                            if id == "Alt" {
-                                Ty::Alt
-                            } else if id == "Seq" {
-                                Ty::Seq
-                            } else if id == "Opt" {
-                                Ty::Opt
-                            } else {
-                                panic!("wrong type: {:?}", id)
-                            }
-                        }
-                    }),
-                _ => Some(PatTy {
-                    inner_ty: id.clone(),
-                    ty: Ty::Alt
-                })
-            }
-        } else {
-            None
-        }
-    } else {
-        None
-    }
-}
-
 
 
 #[proc_macro]
@@ -307,16 +239,6 @@ fn node_to_tokens(ident: &proc_macro2::Ident, args: &Vec<ParseExpr>, named_types
         |(e, (_inner_ty, ty))| to_tokens(e, ty, named_types)
     ).collect::<Vec<_>>();
     quote!(pattern_tree::variants:: #ident ( #(#tokens),* ))
-}
-
-fn to_tokens_node(parse_tree: &ParseExpr, named_types: &HashMap<Ident, ResTy<Ident>>) -> proc_macro2::TokenStream {
-    match parse_tree {
-        ParseExpr::Node(ident, args) => {
-            let tokens = node_to_tokens(ident, args, named_types);
-            quote!(#tokens)
-        },
-        _ => panic!("Expected node")
-    }
 }
 
 
