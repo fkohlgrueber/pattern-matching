@@ -11,6 +11,56 @@ use pattern_match::IsMatch;
 
 use pattern_match::pattern_tree;
 
+pattern!{
+    PAT_IF_WITHOUT_ELSE: pattern_tree::Expr = 
+        If(
+            _#check,
+            Block(
+                Expr( If(_#check_inner, _#content, ())#inner )
+                | Semi( If(_#check_inner, _#content, ())#inner ) 
+            )#then, 
+            ()
+        )
+}
+
+pattern!{
+    PAT_IF_2: Alt<pattern_tree::Expr> = 
+        If(
+            _, 
+            _, 
+            Block_(
+                Block(
+                    Expr((If(_, _, _?) | IfLet(_, _?))#else_) | 
+                    Semi((If(_, _, _?) | IfLet(_, _?))#else_)
+                )
+            )#block
+        ) |
+        IfLet(
+            _, 
+            Block_(
+                Block(
+                    Expr((If(_, _, _?) | IfLet(_, _?))#else_) | 
+                    Semi((If(_, _, _?) | IfLet(_, _?))#else_)
+                )
+            )#block
+        )
+}
+
+pattern!(
+    PAT_SIMPLE: Alt<pattern_tree::Expr> = 
+        Lit(Bool(false)) |
+        Array(
+            Lit(Char('a')) * 
+            Lit(Char('b')) {1,3} 
+            Lit(Char('c'))
+        ) |
+        If(
+            Lit(Bool(true)), 
+            Block(Expr(Lit(Int(_)))* Semi(Lit(Bool(_)))*),
+            _?
+        )#var
+);
+
 pattern!(
     PAT: Alt<pattern_tree::Expr> = 
         //Array( Lit(Bool(_#var|_)#var2)*#var3 )

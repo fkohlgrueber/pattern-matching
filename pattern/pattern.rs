@@ -7,7 +7,6 @@ use std::fmt::Display;
 extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
-use quote::ToTokens;
 
 mod parse;
 
@@ -45,7 +44,8 @@ struct PatTy {
 enum PatTy_ {
     Alt,
     Seq,
-    Opt
+    Opt,
+    None
 }
 
 impl From<&Ty> for PatTy_ {
@@ -58,9 +58,20 @@ impl From<&Ty> for PatTy_ {
     }
 }
 
+impl From<&PatTy_> for Ty {
+    fn from(other: &PatTy_) -> Ty {
+        match other {
+            PatTy_::Alt => Ty::Alt,
+            PatTy_::Seq => Ty::Seq,
+            PatTy_::Opt => Ty::Opt,
+            PatTy_::None => Ty::Alt,
+        }
+    }
+}
+
 fn to_res_ty(input: &PatTy) -> ResTy<Ident> {
     match &input.ty {
-        PatTy_::Alt => ResTy::Elmt(input.inner_ty.clone()),
+        PatTy_::Alt | PatTy_::None => ResTy::Elmt(input.inner_ty.clone()),
         PatTy_::Seq => ResTy::Seq(Box::new(ResTy::Elmt(input.inner_ty.clone()))),
         PatTy_::Opt => ResTy::Opt(Box::new(ResTy::Elmt(input.inner_ty.clone()))),
     }
@@ -209,7 +220,7 @@ fn get_pat_ty(ty: &syn::Type) -> Option<PatTy> {
                     }),
                 _ => Some(PatTy {
                     inner_ty: id.clone(),
-                    ty: PatTy_::Alt
+                    ty: PatTy_::None
                 })
             }
         } else {
@@ -224,23 +235,14 @@ fn get_pat_ty(ty: &syn::Type) -> Option<PatTy> {
 
 #[proc_macro]
 pub fn pattern(item: TokenStream) -> TokenStream {
+    
+    // parse the pattern
     let Pattern { name, ty, node } = syn::parse_macro_input!(item as Pattern);
+    
     // Name of the result struct is <pattern_name>Struct, e.g. PatStruct
     let struct_name = proc_macro2::Ident::new(&(name.to_string() + "Struct"), proc_macro2::Span::call_site());
-    let ty_str = ty.clone().into_token_stream().to_string();
-    // TODO: the type should be detected as part of the parsing step
-    let root_ty = {
-        if ty_str.starts_with("Alt") {
-            Some(Ty::Alt)
-        } else if ty_str.starts_with("Seq") {
-            Some(Ty::Seq)
-        } else if ty_str.starts_with("Opt") {
-            Some(Ty::Opt)
-        } else {
-            None
-        }
-    };
     
+    // extract the type (Alt<_>, Seq<_>, Opt<_> or _)
     let pat_ty = get_pat_ty(&ty).unwrap();
 
     let named_subpattern_types = get_named_subpattern_types(&node, &pat_ty);
@@ -273,16 +275,16 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         }
     ).collect::<Vec<_>>();
 
-    let pattern_ty = match &root_ty {
-        Some(Ty::Alt) => quote!( Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
-        Some(Ty::Seq) => quote!( Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
-        Some(Ty::Opt) => quote!( Opt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
-        None => quote!( pattern_tree::Expr<'_, '_, #struct_name<A>, A> ),
+    let pattern_ty = match &pat_ty.ty {
+        PatTy_::Alt => quote!( Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
+        PatTy_::Seq => quote!( Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
+        PatTy_::Opt => quote!( Opt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
+        PatTy_::None => quote!( pattern_tree::Expr<'_, '_, #struct_name<A>, A> ),
     };
 
-    let tokens = match root_ty {
-        Some(root_ty) => to_tokens(&node, &root_ty, &named_subpattern_types),
-        None => to_tokens_node(&node, &named_subpattern_types)
+    let tokens = match &pat_ty.ty {
+        PatTy_::None => to_tokens_node(&node, &named_subpattern_types),
+        ty => to_tokens(&node, &ty.into(), &named_subpattern_types),
     };
     quote!(
 
