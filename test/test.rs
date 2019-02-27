@@ -6,10 +6,6 @@ extern crate syntax;
 
 use pattern::pattern;
 
-use pattern_match::IsMatch;
-
-use pattern_match::pattern_tree;
-
 pattern!{
     PAT_IF_WITHOUT_ELSE: Alt<Expr> = 
         If(

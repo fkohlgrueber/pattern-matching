@@ -278,17 +278,19 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         where 
             A: pattern_match::MatchAssociations<'o, Expr=P>,
             P: std::fmt::Debug,
-            for<'cx> pattern_tree::Expr<'cx, 'o, #struct_tmp_name<'o, A>, A>: IsMatch<
+            for<'cx> pattern_match::pattern_tree::Expr<'cx, 'o, #struct_tmp_name<'o, A>, A>: pattern_match::IsMatch<
                 'cx, 
                 'o, 
                 #struct_tmp_name<'o, A>, 
                 P
             >,
         {
+            use pattern_match::IsMatch;
+
             let pattern: pattern_match::matchers::#pattern_ty<
                 '_, 
                 '_, 
-                pattern_tree::Expr<
+                pattern_match::pattern_tree::Expr<
                     '_, 
                     '_, 
                     #struct_tmp_name<A>, 
@@ -328,7 +330,7 @@ fn node_to_tokens(ident: &proc_macro2::Ident, args: &Vec<ParseExpr>, named_types
     let tokens = args.iter().zip(tys.iter()).map(
         |(e, (_inner_ty, ty))| to_tokens(e, ty, named_types)
     ).collect::<Vec<_>>();
-    quote!(pattern_tree::variants:: #ident ( #(#tokens),* ))
+    quote!(pattern_match::pattern_tree::variants:: #ident ( #(#tokens),* ))
 }
 
 
