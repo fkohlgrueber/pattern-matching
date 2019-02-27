@@ -53,7 +53,7 @@ pattern!(
             Lit(Bool(true)), 
             Block(Expr(Lit(Int(_)))* Semi(Lit(Bool(_)))*),
             _?
-        )#var
+        )
 );
 
 pattern!(

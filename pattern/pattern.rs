@@ -177,6 +177,9 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     
     // parse the pattern
     let Pattern { name, ty, repeat_ty, node } = syn::parse_macro_input!(item as Pattern);
+
+    // wrap parsed pattern with named `root` so that the pattern result struct has at least one item
+    let node = parse::Expr::Named(Box::new(node), proc_macro2::Ident::new("root", proc_macro2::Span::call_site()));
     
     // name of the result struct is <pattern_name>Struct, e.g. PatStruct
     let struct_name = proc_macro2::Ident::new(&(name.to_string() + "Struct"), proc_macro2::Span::call_site());
