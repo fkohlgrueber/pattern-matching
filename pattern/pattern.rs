@@ -254,9 +254,9 @@ pub fn pattern(item: TokenStream) -> TokenStream {
 
 
     let pattern_ty = match &pat_ty.ty {
-        Ty::Alt => quote!( pattern_match::matchers::Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_tmp_name<A>, A>, #struct_tmp_name<A>, A::Expr> ),
-        Ty::Seq => quote!( pattern_match::matchers::Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_tmp_name<A>, A>, #struct_tmp_name<A>, A::Expr> ),
-        Ty::Opt => quote!( pattern_match::matchers::Opt<'_, '_, pattern_tree::Expr<'_, '_, #struct_tmp_name<A>, A>, #struct_tmp_name<A>, A::Expr> ),
+        Ty::Alt => quote!( Alt ),
+        Ty::Seq => quote!( Seq ),
+        Ty::Opt => quote!( Opt ),
     };
 
     let tokens = to_tokens(&node, &pat_ty.ty, &named_subpattern_types);
@@ -285,8 +285,18 @@ pub fn pattern(item: TokenStream) -> TokenStream {
                 P
             >,
         {
-            let pattern: #pattern_ty = #tokens;
-            //dbg!(pattern);
+            let pattern: pattern_match::matchers::#pattern_ty<
+                '_, 
+                '_, 
+                pattern_tree::Expr<
+                    '_, 
+                    '_, 
+                    #struct_tmp_name<A>, 
+                    A
+                >, 
+                #struct_tmp_name<A>, 
+                A::Expr
+            > = #tokens;
 
             let mut cx = #struct_tmp_name {
                 #(#init_tmp_items)*
