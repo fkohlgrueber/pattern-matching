@@ -254,9 +254,9 @@ pub fn pattern(item: TokenStream) -> TokenStream {
 
 
     let pattern_ty = match &pat_ty.ty {
-        Ty::Alt => quote!( Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_tmp_name<A>, A>, #struct_tmp_name<A>, A::Expr> ),
-        Ty::Seq => quote!( Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_tmp_name<A>, A>, #struct_tmp_name<A>, A::Expr> ),
-        Ty::Opt => quote!( Opt<'_, '_, pattern_tree::Expr<'_, '_, #struct_tmp_name<A>, A>, #struct_tmp_name<A>, A::Expr> ),
+        Ty::Alt => quote!( pattern_match::matchers::Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_tmp_name<A>, A>, #struct_tmp_name<A>, A::Expr> ),
+        Ty::Seq => quote!( pattern_match::matchers::Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_tmp_name<A>, A>, #struct_tmp_name<A>, A::Expr> ),
+        Ty::Opt => quote!( pattern_match::matchers::Opt<'_, '_, pattern_tree::Expr<'_, '_, #struct_tmp_name<A>, A>, #struct_tmp_name<A>, A::Expr> ),
     };
 
     let tokens = to_tokens(&node, &pat_ty.ty, &named_subpattern_types);
