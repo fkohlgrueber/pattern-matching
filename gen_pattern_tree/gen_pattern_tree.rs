@@ -1,12 +1,8 @@
 extern crate proc_macro;
 use quote::{quote, ToTokens};
 use proc_macro::TokenStream;
+use common::Ty;
 
-enum Ty {
-    Alt,
-    Seq,
-    Opt
-}
 
 struct PatternTreeNode {
     name: syn::Ident,
@@ -21,18 +17,6 @@ struct PatternTreeVariant {
 struct PatternTreeArg {
     ty: Ty,
     assoc_ty: syn::Ident
-}
-
-impl ToTokens for Ty {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        tokens.extend(
-            match self {
-                Ty::Alt => quote!(Alt),
-                Ty::Seq => quote!(Seq),
-                Ty::Opt => quote!(Opt)
-            }
-        )
-    }
 }
 
 
@@ -128,12 +112,12 @@ pub fn gen_pattern_tree(input: TokenStream) -> TokenStream {
             let name = &x.name;
             let args = x.args.iter().map(|x| &x.ty).collect::<Vec<_>>();
             let args_id = x.args.iter().map(|x| &x.assoc_ty).collect::<Vec<_>>();
-            quote!( p.insert(stringify!(#name), vec!(#( (stringify!(#args_id), Ty::#args) ),*)); )
+            quote!( p.insert(stringify!(#name), vec!(#( (stringify!(#args_id), common::Ty::#args) ),*)); )
         }
     ).collect::<Vec<_>>();
     let types = quote!(
         lazy_static!{
-            pub static ref TYPES: std::collections::HashMap<&'static str, Vec<(&'static str, Ty)>> = {
+            pub static ref TYPES: std::collections::HashMap<&'static str, Vec<(&'static str, common::Ty)>> = {
                 let mut p = std::collections::HashMap::new();
                 #(#x)*
                 p
@@ -152,11 +136,6 @@ pub fn gen_pattern_tree(input: TokenStream) -> TokenStream {
     );
     
     quote!(
-        pub enum Ty {
-            Alt,
-            Seq,
-            Opt
-        }
         #enums 
         #types
         #exports

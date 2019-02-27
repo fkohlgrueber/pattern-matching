@@ -4,5 +4,6 @@ members = [
     "gen_pattern_tree",
     "pattern",
     "pattern_match",
-    "test"
+    "test",
+    "common"
 ]

@@ -12,7 +12,7 @@ use pattern_match::IsMatch;
 use pattern_match::pattern_tree;
 
 pattern!{
-    PAT_IF_WITHOUT_ELSE: pattern_tree::Expr = 
+    PAT_IF_WITHOUT_ELSE: Alt<Expr> = 
         If(
             _#check,
             Block(
@@ -24,7 +24,7 @@ pattern!{
 }
 
 pattern!{
-    PAT_IF_2: Alt<pattern_tree::Expr> = 
+    PAT_IF_2: Alt<Expr> = 
         If(
             _, 
             _, 
@@ -47,7 +47,7 @@ pattern!{
 }
 
 pattern!(
-    PAT_SIMPLE: Alt<pattern_tree::Expr> = 
+    PAT_SIMPLE: Alt<Expr> = 
         Lit(Bool(false)) |
         Array(
             Lit(Char('a')) * 
@@ -62,7 +62,7 @@ pattern!(
 );
 
 pattern!(
-    PAT: Alt<pattern_tree::Expr> = 
+    PAT: Alt<Expr> = 
         //Array( Lit(Bool(_#var|_)#var2)*#var3 )
         Lit(Bool(_#var|false)#var2)
 );

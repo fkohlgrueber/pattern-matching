@@ -14,7 +14,7 @@ use crate::parse::Expr as ParseExpr;
 use crate::parse::RepeatKind;
 use crate::parse::Pattern;
 
-use pattern_match::pattern_tree::Ty;
+use common::Ty;
 use pattern_match::pattern_tree::TYPES;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -37,43 +37,14 @@ impl Display for ResTy<Ident> {
 #[derive(Debug, Clone)]
 struct PatTy {
     inner_ty: Ident,
-    ty: PatTy_
-}
-
-#[derive(Debug, Clone)]
-enum PatTy_ {
-    Alt,
-    Seq,
-    Opt,
-    None
-}
-
-impl From<&Ty> for PatTy_ {
-    fn from(other: &Ty) -> PatTy_ {
-        match other {
-            Ty::Alt => PatTy_::Alt,
-            Ty::Seq => PatTy_::Seq,
-            Ty::Opt => PatTy_::Opt,
-        }
-    }
-}
-
-impl From<&PatTy_> for Ty {
-    fn from(other: &PatTy_) -> Ty {
-        match other {
-            PatTy_::Alt => Ty::Alt,
-            PatTy_::Seq => Ty::Seq,
-            PatTy_::Opt => Ty::Opt,
-            PatTy_::None => Ty::Alt,
-        }
-    }
+    ty: Ty
 }
 
 fn to_res_ty(input: &PatTy) -> ResTy<Ident> {
     match &input.ty {
-        PatTy_::Alt | PatTy_::None => ResTy::Elmt(input.inner_ty.clone()),
-        PatTy_::Seq => ResTy::Seq(Box::new(ResTy::Elmt(input.inner_ty.clone()))),
-        PatTy_::Opt => ResTy::Opt(Box::new(ResTy::Elmt(input.inner_ty.clone()))),
+        Ty::Alt => ResTy::Elmt(input.inner_ty.clone()),
+        Ty::Seq => ResTy::Seq(Box::new(ResTy::Elmt(input.inner_ty.clone()))),
+        Ty::Opt => ResTy::Opt(Box::new(ResTy::Elmt(input.inner_ty.clone()))),
     }
 }
 
@@ -85,7 +56,7 @@ fn get_named_subpattern_types(input: &parse::Expr, ty: &PatTy) -> HashMap<Ident,
             let tys = TYPES.get(id.to_string().as_str()).expect("Unknown Node");
             if tys.len() != args.len() { panic!("Wrong number of arguments") }
             let hms = args.iter().zip(tys.iter()).map(
-                |(e, (inner_ty, ty))| get_named_subpattern_types(e, &PatTy { inner_ty: Ident::new(inner_ty, proc_macro2::Span::call_site()), ty: ty.into()})
+                |(e, (inner_ty, ty))| get_named_subpattern_types(e, &PatTy { inner_ty: Ident::new(inner_ty, proc_macro2::Span::call_site()), ty: ty.clone()})
             ).collect::<Vec<_>>();
             
             let mut res = HashMap::new();
@@ -208,11 +179,11 @@ fn get_pat_ty(ty: &syn::Type) -> Option<PatTy> {
                         inner_ty: get_inner_ty(&abga).unwrap().clone(),
                         ty: {
                             if id == "Alt" {
-                                PatTy_::Alt
+                                Ty::Alt
                             } else if id == "Seq" {
-                                PatTy_::Seq
+                                Ty::Seq
                             } else if id == "Opt" {
-                                PatTy_::Opt
+                                Ty::Opt
                             } else {
                                 panic!("wrong type: {:?}", id)
                             }
@@ -220,7 +191,7 @@ fn get_pat_ty(ty: &syn::Type) -> Option<PatTy> {
                     }),
                 _ => Some(PatTy {
                     inner_ty: id.clone(),
-                    ty: PatTy_::None
+                    ty: Ty::Alt
                 })
             }
         } else {
@@ -237,13 +208,16 @@ fn get_pat_ty(ty: &syn::Type) -> Option<PatTy> {
 pub fn pattern(item: TokenStream) -> TokenStream {
     
     // parse the pattern
-    let Pattern { name, ty, node } = syn::parse_macro_input!(item as Pattern);
+    let Pattern { name, ty, repeat_ty, node } = syn::parse_macro_input!(item as Pattern);
     
     // Name of the result struct is <pattern_name>Struct, e.g. PatStruct
     let struct_name = proc_macro2::Ident::new(&(name.to_string() + "Struct"), proc_macro2::Span::call_site());
     
     // extract the type (Alt<_>, Seq<_>, Opt<_> or _)
-    let pat_ty = get_pat_ty(&ty).unwrap();
+    let pat_ty = PatTy {
+        inner_ty: ty,
+        ty: repeat_ty
+    };
 
     let named_subpattern_types = get_named_subpattern_types(&node, &pat_ty);
 
@@ -276,16 +250,12 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     ).collect::<Vec<_>>();
 
     let pattern_ty = match &pat_ty.ty {
-        PatTy_::Alt => quote!( Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
-        PatTy_::Seq => quote!( Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
-        PatTy_::Opt => quote!( Opt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
-        PatTy_::None => quote!( pattern_tree::Expr<'_, '_, #struct_name<A>, A> ),
+        Ty::Alt => quote!( Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
+        Ty::Seq => quote!( Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
+        Ty::Opt => quote!( Opt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
     };
 
-    let tokens = match &pat_ty.ty {
-        PatTy_::None => to_tokens_node(&node, &named_subpattern_types),
-        ty => to_tokens(&node, &ty.into(), &named_subpattern_types),
-    };
+    let tokens = to_tokens(&node, &pat_ty.ty, &named_subpattern_types);
     quote!(
 
         #[derive(Debug)]

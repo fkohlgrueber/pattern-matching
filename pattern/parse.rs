@@ -32,7 +32,8 @@ impl Precedence {
 #[derive(PartialEq, Debug)]
 pub struct Pattern {
     pub name: Ident,
-    pub ty: syn::Type,
+    pub ty: syn::Ident,
+    pub repeat_ty: common::Ty,
     pub node: Expr,
 }
 
@@ -97,16 +98,27 @@ impl Parse for BinOp {
 
 impl Parse for Pattern {
     fn parse(input: ParseStream) -> Result<Self> {
+        // parse name
         let name = input.parse()?;
+        
         input.parse::<Token![:]>()?;
+        
+        // parse type
+        let repeat_ty = input.parse()?;
+        input.parse::<Token![<]>()?;
         let ty = input.parse()?;
+        input.parse::<Token![>]>()?;
+        
         input.parse::<Token![=]>()?;
+        
+        // parse pattern
         let node = input.parse()?;
 
         Ok(
             Pattern {
                 name,
                 ty,
+                repeat_ty,
                 node,
             }
         )
