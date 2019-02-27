@@ -37,42 +37,6 @@ impl ToTokens for Ty {
     }
 }
 
-impl ToTokens for PatternTreeArg {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let ty = &self.ty;
-        let inner_ty = &self.inner_ty;
-        let inner_ty = if self.inner_ty_primitive {
-            quote!(#inner_ty)
-        } else {
-            quote!(#inner_ty<'cx, 'o, Cx, A>)
-        };
-        let assoc_ty = &self.assoc_ty;
-        tokens.extend(quote!(#ty < 'cx, 'o, #inner_ty, Cx, A::#assoc_ty >))
-    }
-}
-
-impl ToTokens for PatternTreeVariant {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = &self.name;
-        let args = &self.args;
-        tokens.extend(quote!(#name (#(#args),* )))
-    }
-}
-
-impl ToTokens for PatternTreeNode {
-    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
-        let name = &self.name;
-        let variants = &self.variants;
-        tokens.extend(quote!(
-            #[derive(Debug)]
-            pub enum #name<'cx, 'o, Cx, A>
-            where A: MatchAssociations<'o> {
-                #(#variants),*
-            }
-        ))
-    }
-}
-
 
 struct Enums(Vec<syn::ItemEnum>);
 
