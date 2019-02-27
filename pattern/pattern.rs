@@ -224,10 +224,9 @@ fn get_pat_ty(ty: &syn::Type) -> Option<PatTy> {
 
 #[proc_macro]
 pub fn pattern(item: TokenStream) -> TokenStream {
-    let parse_pattern = syn::parse_macro_input!(item as Pattern);
-    let name = parse_pattern.name;
+    let Pattern { name, ty, node } = syn::parse_macro_input!(item as Pattern);
+    // Name of the result struct is <pattern_name>Struct, e.g. PatStruct
     let struct_name = proc_macro2::Ident::new(&(name.to_string() + "Struct"), proc_macro2::Span::call_site());
-    let ty = parse_pattern.ty;
     let ty_str = ty.clone().into_token_stream().to_string();
     // TODO: the type should be detected as part of the parsing step
     let root_ty = {
@@ -243,11 +242,8 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     };
     
     let pat_ty = get_pat_ty(&ty).unwrap();
-    
-    //print_hm(&get_named_subpattern_types(&parse_pattern.node, &pat_ty));
-    //dbg!(pat_ty);
 
-    let named_subpattern_types = get_named_subpattern_types(&parse_pattern.node, &pat_ty);
+    let named_subpattern_types = get_named_subpattern_types(&node, &pat_ty);
 
     let result_items = named_subpattern_types.iter().map(
         |(k, v)| match v {
@@ -285,8 +281,8 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     };
 
     let tokens = match root_ty {
-        Some(root_ty) => to_tokens(&parse_pattern.node, &root_ty, &named_subpattern_types),
-        None => to_tokens_node(&parse_pattern.node, &named_subpattern_types)
+        Some(root_ty) => to_tokens(&node, &root_ty, &named_subpattern_types),
+        None => to_tokens_node(&node, &named_subpattern_types)
     };
     quote!(
 
@@ -470,7 +466,7 @@ fn to_tokens_seq(parse_tree: &ParseExpr, named_types: &HashMap<Ident, ResTy<Iden
 
 
 
-
+/*
 #[cfg(test)]
 mod tests {
     #[test]
@@ -478,3 +474,4 @@ mod tests {
         assert_eq!(2 + 2, 4);
     }
 }
+*/
