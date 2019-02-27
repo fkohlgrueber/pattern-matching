@@ -14,7 +14,7 @@ use pattern_match::pattern_tree;
 pattern!(
     PAT: Alt<pattern_tree::Expr> = 
         //Array( Lit(Bool(_#var|_)#var2)*#var3 )
-        Lit(Bool(_#var|_)#var2)
+        Lit(Bool(_#var|false)#var2)
 );
 
 

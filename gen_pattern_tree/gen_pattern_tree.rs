@@ -73,87 +73,176 @@ impl ToTokens for PatternTreeNode {
     }
 }
 
-fn ident(input: &'static str) -> syn::Ident {
-    syn::Ident::new(input, proc_macro2::Span::call_site())
+
+struct Enums(Vec<syn::ItemEnum>);
+
+use syn::parse::{Parse, ParseStream};
+use syn::{Result};
+impl Parse for Enums {
+    fn parse(input: ParseStream) -> Result<Self> {
+        let mut res = vec!();
+        while !input.is_empty() {
+            res.push(input.parse()?);
+        }
+        Ok(
+            Enums(res)
+        )
+    }
 }
+
+impl ToTokens for Enums {
+    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+        for e in &self.0 {
+            e.to_tokens(tokens)
+        }
+    }
+}
+
+/*
+Path(TypePath { qself: None, path: Path { leading_colon: None, segments: [
+    PathSegment { 
+        ident: Ident { 
+            ident: "Alt", 
+            span: #0 bytes(11628..11631) 
+        }, 
+        arguments: AngleBracketed(
+            AngleBracketedGenericArguments { 
+                colon2_token: None, 
+                lt_token: Lt, 
+                args: [
+                    Lifetime(Lifetime { 
+                        apostrophe: #0 bytes(11632..11635), 
+                        ident: Ident { ident: "cx", span: #0 bytes(11632..11635) } 
+                    }), 
+                    Comma, 
+                    Lifetime(Lifetime { 
+                        apostrophe: #0 bytes(11637..11639), 
+                        ident: Ident { ident: "o", span: #0 bytes(11637..11639) } 
+                    }), 
+                    Comma, 
+                    Type(
+                        Path(TypePath { 
+                            qself: None, 
+                            path: Path { 
+                                leading_colon: None, 
+                                segments: [
+                                    PathSegment { 
+                                        ident: Ident { ident: "u128", span: #0 bytes(11641..11645) }, 
+                                        arguments: None 
+                                    }
+                                ] 
+                            } 
+                        })
+                    ), 
+                    Comma, 
+                    Type(
+                        Path(TypePath { 
+                            qself: None, 
+                            path: Path { 
+                                leading_colon: None, 
+                                segments: [
+                                    PathSegment { 
+                                        ident: Ident { ident: "Cx", span: #0 bytes(11647..11649) }, 
+                                        arguments: None 
+                                    }
+                                ] 
+                            } 
+                        })
+                    ), 
+                    Comma, 
+                    Type(
+                        Path(
+                            TypePath { 
+                                qself: None, 
+                                path: Path { 
+                                    leading_colon: None, 
+                                    segments: [
+                                        PathSegment { 
+                                            ident: Ident { ident: "A", span: #0 bytes(11651..11652) }, 
+                                            arguments: None 
+                                        }, 
+                                        Colon2, 
+                                        PathSegment { 
+                                            ident: Ident { ident: "Int", span: #0 bytes(11654..11657) }, 
+                                            arguments: None 
+                                        }
+                                    ] 
+                                } 
+                            }
+                        )
+                    )
+                ], 
+                gt_token: Gt 
+            }
+        ) 
+    }
+] } })
+*/
 
 
 #[proc_macro]
-pub fn gen_pattern_tree(_item: TokenStream) -> TokenStream {
-    let pattern_tree_def = vec!(
-        PatternTreeNode {
-            name: ident("Expr"),
-            variants: vec!(
-                PatternTreeVariant{
-                    name: ident("Lit"),
-                    args: vec!(PatternTreeArg{ inner_ty: ident("Lit"), ty: Ty::Alt, assoc_ty: ident("Lit"), inner_ty_primitive: false})
-                },
-                PatternTreeVariant{
-                    name: ident("Array"),
-                    args: vec!(PatternTreeArg{ inner_ty: ident("Expr"), ty: Ty::Seq, assoc_ty: ident("Expr"), inner_ty_primitive: false})
-                },
-                PatternTreeVariant{
-                    name: ident("Block_"),
-                    args: vec!(PatternTreeArg{ inner_ty: ident("BlockType"), ty: Ty::Alt, assoc_ty: ident("BlockType"), inner_ty_primitive: false})
-                },
-                PatternTreeVariant{
-                    name: ident("If"),
-                    args: vec!(
-                        PatternTreeArg { inner_ty: ident("Expr"), ty: Ty::Alt, assoc_ty: ident("Expr"), inner_ty_primitive: false},
-                        PatternTreeArg { inner_ty: ident("BlockType"), ty: Ty::Alt, assoc_ty: ident("BlockType"), inner_ty_primitive: false},
-                        PatternTreeArg { inner_ty: ident("Expr"), ty: Ty::Opt, assoc_ty: ident("Expr"), inner_ty_primitive: false},
-                    )
-                },
-                PatternTreeVariant{
-                    name: ident("IfLet"),
-                    args: vec!(
-                        PatternTreeArg { inner_ty: ident("BlockType"), ty: Ty::Alt, assoc_ty: ident("BlockType"), inner_ty_primitive: false},
-                        PatternTreeArg { inner_ty: ident("Expr"), ty: Ty::Opt, assoc_ty: ident("Expr"), inner_ty_primitive: false},
-                    )
-                }
-            )
-        },
-        PatternTreeNode {
-            name: ident("Lit"),
-            variants: vec!(
-                PatternTreeVariant{
-                    name: ident("Char"),
-                    args: vec!(PatternTreeArg{ inner_ty: ident("char"), ty: Ty::Alt, assoc_ty: ident("Char"), inner_ty_primitive: true})
-                },
-                PatternTreeVariant{
-                    name: ident("Bool"),
-                    args: vec!(PatternTreeArg{ inner_ty: ident("bool"), ty: Ty::Alt, assoc_ty: ident("Bool"), inner_ty_primitive: true})
-                },
-                PatternTreeVariant{
-                    name: ident("Int"),
-                    args: vec!(PatternTreeArg{ inner_ty: ident("u128"), ty: Ty::Alt, assoc_ty: ident("Int"), inner_ty_primitive: true})
-                }
-            )
-        },
-        PatternTreeNode {
-            name: ident("Stmt"),
-            variants: vec!(
-                PatternTreeVariant{
-                    name: ident("Expr"),
-                    args: vec!(PatternTreeArg{ inner_ty: ident("Expr"), ty: Ty::Alt, assoc_ty: ident("Expr"), inner_ty_primitive: false})
-                },
-                PatternTreeVariant{
-                    name: ident("Semi"),
-                    args: vec!(PatternTreeArg{ inner_ty: ident("Expr"), ty: Ty::Alt, assoc_ty: ident("Expr"), inner_ty_primitive: false})
-                },
-            )
-        },
-        PatternTreeNode {
-            name: ident("BlockType"),
-            variants: vec!(
-                PatternTreeVariant{
-                    name: ident("Block"),
-                    args: vec!(PatternTreeArg{ inner_ty: ident("Stmt"), ty: Ty::Seq, assoc_ty: ident("Stmt"), inner_ty_primitive: false})
-                },
-            )
-        },
-    );
+pub fn gen_pattern_tree(input: TokenStream) -> TokenStream {
+    
+    // parse input
+    let enums = syn::parse_macro_input!(input as Enums);
 
+    // extract relevant information about the enums' variants, their arguments and types
+    // TODO: improve error handling!
+    let mut pattern_tree_def = vec!();
+    for e in &enums.0 {
+        let mut variants = vec!();
+        for v in &e.variants {
+            let mut params = vec!();
+            if let syn::Fields::Unnamed(f) = &v.fields {
+                for field in &f.unnamed {
+                    if let syn::Type::Path(p) = &field.ty {
+                        assert!(p.path.segments.len() == 1);
+                        let path_segment = &p.path.segments[0];
+                        let repeat_ty = path_segment.ident.to_string();
+                        let mut type_idents = vec!();
+                        if let syn::PathArguments::AngleBracketed(abga) = &path_segment.arguments {
+                            for generic_argument in &abga.args {
+                                if let syn::GenericArgument::Type(t) = generic_argument {
+                                    if let syn::Type::Path(p) = &t {
+                                        for path_segment in &p.path.segments {
+                                            if path_segment.ident != "A" && path_segment.ident != "Cx" {
+                                                type_idents.push(path_segment.ident.clone())
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        assert!(type_idents.len() == 2);
+                        params.push(PatternTreeArg { 
+                            ty: match repeat_ty.as_str() {
+                                "Alt" => Ty::Alt,
+                                "Seq" => Ty::Seq,
+                                "Opt" => Ty::Opt,
+                                _ => panic!("wrong type!")
+                            },
+                            inner_ty_primitive: type_idents[0].to_string() != type_idents[1].to_string(),
+                            inner_ty: type_idents[0].clone(),
+                            assoc_ty: type_idents[1].clone(),
+                        });
+                    }
+                }
+            }
+            variants.push(
+                PatternTreeVariant {
+                    name: v.ident.clone(), 
+                    args: params
+                }
+            );
+        }
+        pattern_tree_def.push(
+            PatternTreeNode {
+                name: e.ident.clone(),
+                variants
+            }
+        )
+    }
+    
     // generate type information struct
     let x = pattern_tree_def.iter().flat_map(|x| &x.variants).map(
         |x| {
@@ -182,11 +271,6 @@ pub fn gen_pattern_tree(_item: TokenStream) -> TokenStream {
             )*
         }
     );
-
-    // generate enums
-    let enums = quote!(
-        #(#pattern_tree_def)*
-    );
     
     quote!(
         pub enum Ty {
@@ -200,7 +284,7 @@ pub fn gen_pattern_tree(_item: TokenStream) -> TokenStream {
     ).into()
 }
 
-
+/*
 #[cfg(test)]
 mod tests {
     #[test]
@@ -208,3 +292,4 @@ mod tests {
         assert_eq!(2 + 2, 4);
     }
 }
+*/
