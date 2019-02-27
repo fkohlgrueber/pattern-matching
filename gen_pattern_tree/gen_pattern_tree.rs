@@ -20,8 +20,6 @@ struct PatternTreeVariant {
 
 struct PatternTreeArg {
     ty: Ty,
-    inner_ty: syn::Ident,
-    inner_ty_primitive: bool,
     assoc_ty: syn::Ident
 }
 
@@ -104,8 +102,6 @@ pub fn gen_pattern_tree(input: TokenStream) -> TokenStream {
                                 "Opt" => Ty::Opt,
                                 _ => panic!("wrong type!")
                             },
-                            inner_ty_primitive: type_idents[0].to_string() != type_idents[1].to_string(),
-                            inner_ty: type_idents[0].clone(),
                             assoc_ty: type_idents[1].clone(),
                         });
                     }
