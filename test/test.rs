@@ -63,7 +63,7 @@ pattern!(
 
 pattern!(
     PAT: Alt<Expr> = 
-        Array( Lit(Bool(_#var)#var2)*#var3 )
+        Lit(Bool(_#var)#var2)#var3
 );
 
 

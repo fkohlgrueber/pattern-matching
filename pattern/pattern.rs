@@ -181,13 +181,34 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     // name of the result struct is <pattern_name>Struct, e.g. PatStruct
     let struct_name = proc_macro2::Ident::new(&(name.to_string() + "Struct"), proc_macro2::Span::call_site());
     
+    // name of the temporary result struct is <pattern_name>TmpStruct, e.g. PatTmpStruct
+    // this struct is used as the context during matching
+    let struct_tmp_name = proc_macro2::Ident::new(&(name.to_string() + "TmpStruct"), proc_macro2::Span::call_site());
+
     // extract the type (Alt<_>, Seq<_>, Opt<_> or _)
     let pat_ty = PatTy {
         inner_ty: ty,
         ty: repeat_ty
     };
 
+    // for each named subpattern, get its type
     let named_subpattern_types = get_named_subpattern_types(&node, &pat_ty);
+
+    
+    let result_tmp_items = named_subpattern_types.iter().map(
+        |(k, v)| match v {
+            ResTy::Elmt(e) => quote!( #k: Option<&'o A::#e>, ),
+            ResTy::Opt(o) => match &**o {
+                ResTy::Elmt(e) => quote!( #k: Option<&'o A::#e>, ),
+                _ => panic!("This is not implemented yet!!")
+            },
+            ResTy::Seq(s) => match &**s {
+                ResTy::Elmt(e) => quote!( #k: Vec<&'o A::#e>, ),
+                _ => panic!("This is not implemented yet!!")
+            },
+        }
+    ).collect::<Vec<_>>();
+
 
     let result_items = named_subpattern_types.iter().map(
         |(k, v)| match v {
@@ -203,7 +224,7 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         }
     ).collect::<Vec<_>>();
 
-    let init_items = named_subpattern_types.iter().map(
+    let init_tmp_items = named_subpattern_types.iter().map(
         |(k, v)| match v {
             ResTy::Elmt(_e) => quote!( #k: None, ),
             ResTy::Opt(o) => match &**o {
@@ -217,10 +238,25 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         }
     ).collect::<Vec<_>>();
 
+    let init_items = named_subpattern_types.iter().map(
+        |(k, v)| match v {
+            ResTy::Elmt(_e) => quote!( #k: cx.#k.unwrap(), ),
+            ResTy::Opt(o) => match &**o {
+                ResTy::Elmt(_e) => quote!( #k: cx.#k, ),
+                _ => panic!("This is not implemented yet!!")
+            },
+            ResTy::Seq(s) => match &**s {
+                ResTy::Elmt(_e) => quote!( #k: cx.#k, ),
+                _ => panic!("This is not implemented yet!!")
+            },
+        }
+    ).collect::<Vec<_>>();
+
+
     let pattern_ty = match &pat_ty.ty {
-        Ty::Alt => quote!( Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
-        Ty::Seq => quote!( Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
-        Ty::Opt => quote!( Opt<'_, '_, pattern_tree::Expr<'_, '_, #struct_name<A>, A>, #struct_name<A>, A::Expr> ),
+        Ty::Alt => quote!( Alt<'_, '_, pattern_tree::Expr<'_, '_, #struct_tmp_name<A>, A>, #struct_tmp_name<A>, A::Expr> ),
+        Ty::Seq => quote!( Seq<'_, '_, pattern_tree::Expr<'_, '_, #struct_tmp_name<A>, A>, #struct_tmp_name<A>, A::Expr> ),
+        Ty::Opt => quote!( Opt<'_, '_, pattern_tree::Expr<'_, '_, #struct_tmp_name<A>, A>, #struct_tmp_name<A>, A::Expr> ),
     };
 
     let tokens = to_tokens(&node, &pat_ty.ty, &named_subpattern_types);
@@ -231,28 +267,36 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         where A: pattern_match::MatchAssociations<'o> {
             #(#result_items)*
         }
+
+        #[derive(Debug)]
+        pub struct #struct_tmp_name<'o, A>
+        where A: pattern_match::MatchAssociations<'o> {
+            #(#result_tmp_items)*
+        }
         
         fn #name <'o, A, P> (node: &'o P) -> Option<#struct_name<'o, A>> 
         where 
             A: pattern_match::MatchAssociations<'o, Expr=P>,
             P: std::fmt::Debug,
-            for<'cx> pattern_tree::Expr<'cx, 'o, #struct_name<'o, A>, A>: IsMatch<
+            for<'cx> pattern_tree::Expr<'cx, 'o, #struct_tmp_name<'o, A>, A>: IsMatch<
                 'cx, 
                 'o, 
-                #struct_name<'o, A>, 
+                #struct_tmp_name<'o, A>, 
                 P
             >,
         {
             let pattern: #pattern_ty = #tokens;
             //dbg!(pattern);
 
-            let mut cx = #struct_name {
-                #(#init_items)*
+            let mut cx = #struct_tmp_name {
+                #(#init_tmp_items)*
             };
 
             let (r, cx_out) = pattern.is_match(&mut cx, node);
             if r {
-                Some(cx)
+                Some(#struct_name {
+                    #(#init_items)*
+                })
             } else {
                 None
             }
