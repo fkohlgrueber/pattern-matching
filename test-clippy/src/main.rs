@@ -12,6 +12,20 @@ use rustc_driver::driver;
 
 use pattern::pattern;
 
+mod utils;
+
+use syntax::ast;
+
+use crate::utils::{snippet_block, in_macro};
+
+fn block_starts_with_comment(cx: &EarlyContext<'_>, expr: &ast::Block) -> bool {
+    // We trim all opening braces and whitespaces and then check if the next string is a comment.
+    let trimmed_block_text = snippet_block(cx, expr.span, "..")
+        .trim_start_matches(|c: char| c.is_whitespace() || c == '{')
+        .to_owned();
+    trimmed_block_text.starts_with("//") || trimmed_block_text.starts_with("/*")
+}
+
 declare_lint! {
     pub COLLAPSIBLE_IF,
     Forbid,
@@ -47,7 +61,7 @@ pattern!{
                 Block(
                     Expr((If(_, _, _?) | IfLet(_, _?))#else_) | 
                     Semi((If(_, _, _?) | IfLet(_, _?))#else_)
-                )
+                )#block_inner
             )#block
         ) |
         IfLet(
@@ -56,7 +70,7 @@ pattern!{
                 Block(
                     Expr((If(_, _, _?) | IfLet(_, _?))#else_) | 
                     Semi((If(_, _, _?) | IfLet(_, _?))#else_)
-                )
+                )#block_inner
             )#block
         )
 }
@@ -64,20 +78,31 @@ pattern!{
 impl EarlyLintPass for CollapsibleIf {
     fn check_expr(&mut self, cx: &EarlyContext, expr: &syntax::ast::Expr) {
         
-        if PAT_IF_WITHOUT_ELSE(expr).is_some() {
-            cx.span_lint(
-                SIMPLE_PATTERN,
-                expr.span,
-                "this if statement can be collapsed",
-            );
+        if in_macro(expr.span) {
+            return;
+        }
+
+        match PAT_IF_WITHOUT_ELSE(expr) {
+            Some(res) => {
+                if !block_starts_with_comment(cx, res.then) && expr.span.ctxt() == res.inner.span.ctxt() {
+                    cx.span_lint(
+                        SIMPLE_PATTERN,
+                        expr.span,
+                        "this if statement can be collapsed",
+                    );
+                }
+            },
+            _ => ()
         }
         match PAT_IF_2(expr) {
             Some(res) => {
-                cx.span_lint(
-                    SIMPLE_PATTERN,
-                    res.block.span,
-                    "this `else { if .. }` block can be collapsed",
-                );
+                if !block_starts_with_comment(cx, res.block_inner) && !in_macro(res.else_.span){
+                    cx.span_lint(
+                        SIMPLE_PATTERN,
+                        res.block.span,
+                        "this `else { if .. }` block can be collapsed",
+                    );
+                }
             },
             _ => ()
         };
@@ -109,7 +134,10 @@ pattern!(
         ) |
         If(
             Lit(Bool(true)), 
-            Block(Expr(Lit(Int(_)))* Semi(Lit(Bool(_)))*),
+            Block(
+                Expr(Lit(Int(_)))+ Semi(Lit(Bool(_)))* | 
+                Expr(Lit(Int(_)))* Semi(Lit(Bool(_)))+
+            ),
             _?
         )#var
 );

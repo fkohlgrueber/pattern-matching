@@ -147,5 +147,15 @@ LL | |         }
 LL | |     }
    | |_____^
 
-error: aborting due to 13 previous errors
+error: this if statement can be collapsed
+  --> $DIR/collapsible_if.rs:173:5
+   |
+LL | /     if x == "hello" {
+LL | |         if y == "world" { // Collapsible
+LL | |             println!("Hello world!");
+LL | |         }
+LL | |     }
+   | |_____^
+
+error: aborting due to 14 previous errors
 
