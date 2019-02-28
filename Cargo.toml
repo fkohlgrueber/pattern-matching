@@ -1,11 +1,11 @@
 [workspace]
 
 members = [
-    "pattern-tree-macro",
-    "pattern-macro",
-    "pattern-match",
-    "test",
     "common",
+    "pattern-tree-macro",
+    "pattern-tree",
+    "pattern-match",
+    "pattern-macro",
     "pattern",
-    "pattern-tree"
+    "test",
 ]
