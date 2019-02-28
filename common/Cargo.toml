@@ -10,5 +10,5 @@ syn = {version = "0.15", features = ["full", "extra-traits"]}
 proc-macro2 = "0.4.26"
 
 [lib]
-path = "common.rs"
+path = "src/common.rs"
 doctest = false

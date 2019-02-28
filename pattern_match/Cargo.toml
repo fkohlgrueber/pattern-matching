@@ -11,5 +11,5 @@ lazy_static = "1.2.0"
 itertools = "0.8.0"
 
 [lib]
-path = "pattern_match.rs"
+path = "src/pattern_match.rs"
 doctest = false

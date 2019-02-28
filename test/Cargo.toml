@@ -11,4 +11,4 @@ lazy_static = "1.2.0"
 
 [lib]
 doctest = false
-path = "test.rs"
+path = "src/test.rs"
