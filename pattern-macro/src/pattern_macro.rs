@@ -307,19 +307,20 @@ fn node_to_tokens(ident: &proc_macro2::Ident, args: &Vec<ParseExpr>, named_types
 
 
 fn to_tokens_alt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
+    let matchers = quote!(pattern::pattern_match::matchers);
     match parse_tree {
-        ParseExpr::Any => quote!(pattern::pattern_match::matchers::Alt::Any),
+        ParseExpr::Any => quote!(#matchers::Alt::Any),
         ParseExpr::Alt(a, b) => {
             let a_tokens = to_tokens_alt(a, named_types);
             let b_tokens = to_tokens_alt(b, named_types);
-            quote!(pattern::pattern_match::matchers::Alt::Alt(Box::new(#a_tokens), Box::new(#b_tokens)))
+            quote!(#matchers::Alt::Alt(Box::new(#a_tokens), Box::new(#b_tokens)))
         },
         ParseExpr::Node(ident, args) => {
             let tokens = node_to_tokens(ident, args, named_types);
-            quote!(pattern::pattern_match::matchers::Alt::Elmt(Box::new(#tokens)))
+            quote!(#matchers::Alt::Elmt(Box::new(#tokens)))
         },
         ParseExpr::Lit(l) => {
-            quote!(pattern::pattern_match::matchers::Alt::Elmt(Box::new(#l)))
+            quote!(#matchers::Alt::Elmt(Box::new(#l)))
         },
         ParseExpr::Named(e, i) => {
             let ty = named_types.get(i).unwrap();
@@ -330,7 +331,7 @@ fn to_tokens_alt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, PatTy>) ->
             };
             let e_tokens = to_tokens_alt(e, named_types);
             quote!(
-                pattern::pattern_match::matchers::Alt::Named(
+                #matchers::Alt::Named(
                     Box::new(#e_tokens), 
                     |cx, elmt| {#action cx}
                 )
@@ -341,19 +342,20 @@ fn to_tokens_alt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, PatTy>) ->
 }
 
 fn to_tokens_opt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
+    let matchers = quote!(pattern::pattern_match::matchers);
     match parse_tree {
-        ParseExpr::Any => quote!(pattern::pattern_match::matchers::Opt::Any),
+        ParseExpr::Any => quote!(#matchers::Opt::Any),
         ParseExpr::Alt(a, b) => {
             let a_tokens = to_tokens_opt(a, named_types);
             let b_tokens = to_tokens_opt(b, named_types);
-            quote!(pattern::pattern_match::matchers::Opt::Alt(Box::new(#a_tokens), Box::new(#b_tokens)))
+            quote!(#matchers::Opt::Alt(Box::new(#a_tokens), Box::new(#b_tokens)))
         },
         ParseExpr::Node(ident, args) => {
             let tokens = node_to_tokens(ident, args, named_types);
-            quote!(pattern::pattern_match::matchers::Opt::Elmt(Box::new(#tokens)))
+            quote!(#matchers::Opt::Elmt(Box::new(#tokens)))
         },
         ParseExpr::Lit(l) => {
-            quote!(pattern::pattern_match::matchers::Opt::Elmt(Box::new(#l)))
+            quote!(#matchers::Opt::Elmt(Box::new(#l)))
         },
         ParseExpr::Named(e, i) => {
             let ty = named_types.get(i).unwrap();
@@ -364,16 +366,16 @@ fn to_tokens_opt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, PatTy>) ->
             };
             let e_tokens = to_tokens_opt(e, named_types);
             quote!(
-                pattern::pattern_match::matchers::Opt::Named(
+                #matchers::Opt::Named(
                     Box::new(#e_tokens), 
                     |cx, elmt| {#action cx}
                 )
             )
         },
-        ParseExpr::Empty => quote!(pattern::pattern_match::matchers::Opt::None),
+        ParseExpr::Empty => quote!(#matchers::Opt::None),
         ParseExpr::Repeat(e, RepeatKind::Optional) => {
             let e_tokens = to_tokens_opt(e, named_types);
-            quote!(pattern::pattern_match::matchers::Opt::Alt(Box::new(#e_tokens), Box::new(pattern::pattern_match::matchers::Opt::None)))
+            quote!(#matchers::Opt::Alt(Box::new(#e_tokens), Box::new(#matchers::Opt::None)))
         },
         ParseExpr::Repeat(_, _) => 
             panic!("`*`, `+` and `{..}` arent't allowed when Opt<_> is expected"),
@@ -382,19 +384,20 @@ fn to_tokens_opt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, PatTy>) ->
 }
 
 fn to_tokens_seq(parse_tree: &ParseExpr, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
+    let matchers = quote!(pattern::pattern_match::matchers);
     match parse_tree {
-        ParseExpr::Any => quote!(pattern::pattern_match::matchers::Seq::Any),
+        ParseExpr::Any => quote!(#matchers::Seq::Any),
         ParseExpr::Alt(a, b) => {
             let a_tokens = to_tokens_seq(a, named_types);
             let b_tokens = to_tokens_seq(b, named_types);
-            quote!(pattern::pattern_match::matchers::Seq::Alt(Box::new(#a_tokens), Box::new(#b_tokens)))
+            quote!(#matchers::Seq::Alt(Box::new(#a_tokens), Box::new(#b_tokens)))
         },
         ParseExpr::Node(ident, args) => {
             let tokens = node_to_tokens(ident, args, named_types);
-            quote!(pattern::pattern_match::matchers::Seq::Elmt(Box::new(#tokens)))
+            quote!(#matchers::Seq::Elmt(Box::new(#tokens)))
         },
         ParseExpr::Lit(l) => {
-            quote!(pattern::pattern_match::matchers::Seq::Elmt(Box::new(#l)))
+            quote!(#matchers::Seq::Elmt(Box::new(#l)))
         },
         ParseExpr::Named(e, i) => {
             let ty = named_types.get(i).unwrap();
@@ -405,29 +408,34 @@ fn to_tokens_seq(parse_tree: &ParseExpr, named_types: &HashMap<Ident, PatTy>) ->
             };
             let e_tokens = to_tokens_seq(e, named_types);
             quote!(
-                pattern::pattern_match::matchers::Seq::Named(
+                #matchers::Seq::Named(
                     Box::new(#e_tokens), 
                     |cx, elmt| {#action cx}
                 )
             )
         },
-        ParseExpr::Empty => quote!(pattern::pattern_match::matchers::Seq::Empty),
+        ParseExpr::Empty => quote!(#matchers::Seq::Empty),
         ParseExpr::Repeat(e, r) => {
             let e_tokens = to_tokens_seq(e, named_types);
-            let repeat_range = match r {
-                RepeatKind::Any => quote!(pattern::pattern_match::matchers::RepeatRange { start: 0, end: None }),
-                RepeatKind::Plus => quote!(pattern::pattern_match::matchers::RepeatRange { start: 1, end: None }),
-                RepeatKind::Optional => quote!(pattern::pattern_match::matchers::RepeatRange { start: 0, end: Some(2) }),
-                RepeatKind::Range(f, Some(t)) => quote!(pattern::pattern_match::matchers::RepeatRange { start: #f, end: Some((#t)+1) }),
-                RepeatKind::Range(f, None) => quote!(pattern::pattern_match::matchers::RepeatRange { start: #f, end: None }),
-                RepeatKind::Repeat(n) => quote!(pattern::pattern_match::matchers::RepeatRange { start: #n, end: Some((#n)+1) })
+            let (start, end) = match r {
+                RepeatKind::Any => (quote!(0), quote!(None)),
+                RepeatKind::Plus => (quote!(1), quote!(None)),
+                RepeatKind::Optional => (quote!(0), quote!(Some(2))),
+                RepeatKind::Range(f, Some(t)) => (quote!(#f), quote!(Some((#t)+1))),
+                RepeatKind::Range(f, None) => (quote!(#f), quote!(None)),
+                RepeatKind::Repeat(n) => (quote!(#n), quote!(Some((#n)+1))),
             };
-            quote!(pattern::pattern_match::matchers::Seq::Repeat(Box::new(#e_tokens), #repeat_range))
+            quote!(
+                #matchers::Seq::Repeat(
+                    Box::new(#e_tokens), 
+                    #matchers::RepeatRange { start: #start, end: #end }
+                )
+            )
         },
         ParseExpr::Seq(a, b) => {
             let a_tokens = to_tokens_seq(a, named_types);
             let b_tokens = to_tokens_seq(b, named_types);
-            quote!(pattern::pattern_match::matchers::Seq::Seq(Box::new(#a_tokens), Box::new(#b_tokens)))
+            quote!(#matchers::Seq::Seq(Box::new(#a_tokens), Box::new(#b_tokens)))
         }
     }
 }
