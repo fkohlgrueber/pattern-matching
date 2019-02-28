@@ -55,13 +55,13 @@ fn get_repeat_type(input: &parse::Expr) -> Ty {
     }
 }
 
-fn get_named_subpattern_types(input: &parse::Expr, ty: &PatTy) -> HashMap<Ident, ResTy<Ident>> {
+fn get_named_subpattern_types(input: &parse::Expr, ty: &Ident) -> HashMap<Ident, ResTy<Ident>> {
     match input {
         parse::Expr::Node(id, args) => {
             let tys = TYPES.get(id.to_string().as_str()).expect("Unknown Node");
             if tys.len() != args.len() { panic!("Wrong number of arguments") }
             let hms = args.iter().zip(tys.iter()).map(
-                |(e, (inner_ty, ty))| get_named_subpattern_types(e, &PatTy { inner_ty: Ident::new(inner_ty, proc_macro2::Span::call_site()), ty: ty.clone()})
+                |(e, (inner_ty, _ty))| get_named_subpattern_types(e, &Ident::new(inner_ty, proc_macro2::Span::call_site()))
             ).collect::<Vec<_>>();
             
             let mut res = HashMap::new();
@@ -129,7 +129,7 @@ fn get_named_subpattern_types(input: &parse::Expr, ty: &PatTy) -> HashMap<Ident,
             let mut h = get_named_subpattern_types(e, ty);
             
             // inner type (e.g. a pattern_tree node) is provided by parameter (top-down)
-            let inner_ty = &ty.inner_ty;
+            let inner_ty = ty;
 
             // repeat type (single, optional, multiple) is determined by looking at own children (bottom-up)
             let repeat_type = get_repeat_type(e);
@@ -188,14 +188,8 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     // this struct is used as the context during matching
     let struct_tmp_name = proc_macro2::Ident::new(&(name.to_string() + "TmpStruct"), proc_macro2::Span::call_site());
 
-    // extract the type (Alt<_>, Seq<_>, Opt<_> or _)
-    let pat_ty = PatTy {
-        inner_ty: ty,
-        ty: repeat_ty
-    };
-
     // for each named subpattern, get its type
-    let named_subpattern_types = get_named_subpattern_types(&node, &pat_ty);
+    let named_subpattern_types = get_named_subpattern_types(&node, &ty);
 
     
     let result_tmp_items = named_subpattern_types.iter().map(
@@ -255,14 +249,7 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         }
     ).collect::<Vec<_>>();
 
-
-    let pattern_ty = match &pat_ty.ty {
-        Ty::Alt => quote!( Alt ),
-        Ty::Seq => quote!( Seq ),
-        Ty::Opt => quote!( Opt ),
-    };
-
-    let tokens = to_tokens(&node, &pat_ty.ty, &named_subpattern_types);
+    let tokens = to_tokens(&node, &repeat_ty, &named_subpattern_types);
     quote!(
 
         #[derive(Debug)]
@@ -290,7 +277,7 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         {
             use pattern::pattern_match::IsMatch;
 
-            let pattern: pattern::pattern_match::matchers::#pattern_ty<
+            let pattern: pattern::pattern_match::matchers::#repeat_ty<
                 '_, 
                 '_, 
                 pattern::pattern_match::pattern_tree::Expr<
