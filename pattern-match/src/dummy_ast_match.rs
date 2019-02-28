@@ -3,7 +3,7 @@ use crate::pattern_tree::*;
 
 // Dummy Ast Nodes
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DummyExpr {
     Lit(DummyLit),
     Array(Vec<DummyExpr>),
@@ -12,26 +12,32 @@ pub enum DummyExpr {
     // IfLet not implemented
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DummyLit {
     Char(char),
     Bool(bool),
     Int(u128),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum DummyStmt {
     Expr(DummyExpr),
     Semi(DummyExpr),
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DummyBlock(Vec<DummyStmt>);
 
 // Dummy Ast MatchAssociations
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub struct DummyAst {}
+
+pub mod variants {
+    pub use super::DummyExpr::*;
+    pub use super::DummyLit::*;
+    pub use super::DummyStmt::*;
+}
 
 impl<'o> MatchAssociations<'o> for DummyAst {
     type Expr = DummyExpr;

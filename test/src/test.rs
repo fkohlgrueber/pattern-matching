@@ -61,6 +61,11 @@ pattern!(
         Lit(Bool(_#var)#var2)#var3
 );
 
+pattern!(
+    PAT_NESTED: Alt<Expr> = 
+        Array( Array(_*#var_inner)* )
+);
+
 
 #[test]
 fn test() {
@@ -91,3 +96,32 @@ fn test() {
     dbg!(res2);
 }
 
+
+#[test]
+fn test_nested() {
+    // Nested named fields get flattened
+    use pattern::pattern_match::dummy_ast_match::variants::*;
+    
+
+    let ast_node = Array(vec!(
+        Array(vec!(
+            Lit(Int(1)),
+            Lit(Int(2))
+        )),
+        Array(vec!(
+            Lit(Int(3)),
+            Lit(Int(4))
+        ))
+    ));
+
+    let res = PAT_NESTED(&ast_node);
+    assert_eq!(
+        res.map(|x| x.var_inner),
+        Some(vec!(
+            &Lit(Int(1)),
+            &Lit(Int(2)),
+            &Lit(Int(3)),
+            &Lit(Int(4))
+        ))
+    );
+}
