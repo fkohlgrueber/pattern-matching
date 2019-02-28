@@ -5,7 +5,7 @@ authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-pattern = { path = "../pattern" }
+pattern-macro = { path = "../pattern-macro" }
 pattern_match = { path = "../pattern_match" }
 lazy_static = "1.2.0"
 

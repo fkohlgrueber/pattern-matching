@@ -1,5 +1,5 @@
 [package]
-name = "pattern"
+name = "pattern-macro"
 version = "0.1.0"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
@@ -13,5 +13,5 @@ proc-macro2 = "0.4.26"
 
 [lib]
 proc-macro = true
-path = "pattern.rs"
+path = "src/pattern_macro.rs"
 doctest = false

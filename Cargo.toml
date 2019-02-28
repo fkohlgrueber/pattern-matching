@@ -2,8 +2,8 @@
 
 members = [
     "pattern-tree-macro",
-    "pattern",
+    "pattern-macro",
     "pattern_match",
     "test",
-    "common"
+    "common",
 ]

@@ -4,7 +4,7 @@
 
 extern crate syntax;
 
-use pattern::pattern;
+use pattern_macro::pattern;
 
 pattern!{
     PAT_IF_WITHOUT_ELSE: Alt<Expr> = 
