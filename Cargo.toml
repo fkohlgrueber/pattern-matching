@@ -8,4 +8,5 @@ members = [
     "pattern-macro",
     "pattern",
     "test",
+    "test-clippy",
 ]

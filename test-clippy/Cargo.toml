@@ -1,0 +1,11 @@
+[package]
+name = "test-clippy"
+version = "0.1.0"
+authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+pattern = { path = "../pattern" }
+
+[dev-dependencies]
+compiletest_rs = "0.3.17"
