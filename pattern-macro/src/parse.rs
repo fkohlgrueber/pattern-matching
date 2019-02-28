@@ -34,16 +34,16 @@ pub struct Pattern {
     pub name: Ident,
     pub ty: syn::Ident,
     pub repeat_ty: common::Ty,
-    pub node: Expr,
+    pub node: ParseTree,
 }
 
 #[derive(PartialEq, Debug)]
-pub enum Expr {
-    Node(Ident, Vec<Expr>),
-    Alt(Box<Expr>, Box<Expr>),
-    Seq(Box<Expr>, Box<Expr>),
-    Repeat(Box<Expr>, RepeatKind),
-    Named(Box<Expr>, Ident),
+pub enum ParseTree {
+    Node(Ident, Vec<ParseTree>),
+    Alt(Box<ParseTree>, Box<ParseTree>),
+    Seq(Box<ParseTree>, Box<ParseTree>),
+    Repeat(Box<ParseTree>, RepeatKind),
+    Named(Box<ParseTree>, Ident),
     Lit(syn::Lit),
     Any,
     Empty // matches the empty sequence `()`
@@ -58,15 +58,15 @@ pub enum RepeatKind {
     Repeat(syn::LitInt)
 }
 
-impl fmt::Display for Expr {
+impl fmt::Display for ParseTree {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Expr::Node(i, args) => write!(f, "{}({})", i, args.iter().map(|x| format!("{}", x).to_string()).collect::<Vec<_>>().join(", ")),
-            Expr::Alt(left, right) => write!(f, "({} | {})", left, right),
-            Expr::Seq(left, right) => write!(f, "({}; {})", left, right),
-            Expr::Any => write!(f, "_"),
-            Expr::Empty => write!(f, "()"),
-            Expr::Repeat(e, r) => write!(f, "{}{}", e, match r {
+            ParseTree::Node(i, args) => write!(f, "{}({})", i, args.iter().map(|x| format!("{}", x).to_string()).collect::<Vec<_>>().join(", ")),
+            ParseTree::Alt(left, right) => write!(f, "({} | {})", left, right),
+            ParseTree::Seq(left, right) => write!(f, "({}; {})", left, right),
+            ParseTree::Any => write!(f, "_"),
+            ParseTree::Empty => write!(f, "()"),
+            ParseTree::Repeat(e, r) => write!(f, "{}{}", e, match r {
                 RepeatKind::Any => "*".to_string(),
                 RepeatKind::Plus => "+".to_string(),
                 RepeatKind::Optional => "?".to_string(),
@@ -76,8 +76,8 @@ impl fmt::Display for Expr {
                 ),
                 RepeatKind::Repeat(r) => format!("{{{}}}", r.value())
             }),
-            Expr::Named(e, i) => write!(f, "{}#{}", e, i),
-            Expr::Lit(_e) => write!(f, "<expr>"),
+            ParseTree::Named(e, i) => write!(f, "{}#{}", e, i),
+            ParseTree::Lit(_e) => write!(f, "<expr>"),
         }
     }
 }
@@ -131,44 +131,44 @@ impl Parse for Pattern {
 }
 
 
-impl Parse for Expr {
+impl Parse for ParseTree {
     fn parse(input: ParseStream) -> Result<Self> {
         ambiguous_expr(input)
     }
 }
 
 // Parse an arbitrary expression.
-fn ambiguous_expr(input: ParseStream) -> Result<Expr> {
+fn ambiguous_expr(input: ParseStream) -> Result<ParseTree> {
     let lhs = unary_expr(input)?;
     parse_expr(input, lhs, Precedence::Any)
 }
 
-fn unary_expr(input: ParseStream) -> Result<Expr> {
+fn unary_expr(input: ParseStream) -> Result<ParseTree> {
     trailer_expr(input)
 }
 
-fn trailer_expr(input: ParseStream) -> Result<Expr> {
+fn trailer_expr(input: ParseStream) -> Result<ParseTree> {
     /*if input.peek(token::Group) {
-        return input.call(expr_group).map(Expr::Group);
+        return input.call(expr_group).map(ParseTree::Group);
     }*/
 
     let mut e = atom_expr(input)?;
     
     if input.peek(Token![*]) {
         input.parse::<Token![*]>()?;
-        e = Expr::Repeat(Box::new(e), RepeatKind::Any);
+        e = ParseTree::Repeat(Box::new(e), RepeatKind::Any);
     } else if input.peek(Token![+]) {
         input.parse::<Token![+]>()?;
-        e = Expr::Repeat(Box::new(e), RepeatKind::Plus);
+        e = ParseTree::Repeat(Box::new(e), RepeatKind::Plus);
     } else if input.peek(Token![?]) {
         input.parse::<Token![?]>()?;
-        e = Expr::Repeat(Box::new(e), RepeatKind::Optional);
+        e = ParseTree::Repeat(Box::new(e), RepeatKind::Optional);
     } else if input.peek(token::Brace) {
         let content;
         braced!(content in input);
         let f = content.parse::<syn::LitInt>()?;
         if content.is_empty() {
-            e = Expr::Repeat(Box::new(e), RepeatKind::Repeat(f))
+            e = ParseTree::Repeat(Box::new(e), RepeatKind::Repeat(f))
         } else {
             content.parse::<Token![,]>()?;
             let t = if content.is_empty() {
@@ -176,13 +176,13 @@ fn trailer_expr(input: ParseStream) -> Result<Expr> {
             } else {
                 Some(content.parse::<syn::LitInt>()?)
             };
-            e = Expr::Repeat(Box::new(e), RepeatKind::Range(f, t));
+            e = ParseTree::Repeat(Box::new(e), RepeatKind::Range(f, t));
         };
     }
 
     if input.peek(Token![#]) {
         input.parse::<Token![#]>()?;
-        e = Expr::Named(Box::new(e), input.parse()?);
+        e = ParseTree::Named(Box::new(e), input.parse()?);
     }
     //let mut e = trailer_helper(input, atom)?;
 
@@ -190,32 +190,32 @@ fn trailer_expr(input: ParseStream) -> Result<Expr> {
     Ok(e)
 }
 
-fn atom_expr(input: ParseStream) -> Result<Expr> {
+fn atom_expr(input: ParseStream) -> Result<ParseTree> {
     if input.peek(Token![_]){
-        input.parse::<Token![_]>().map(|_| Expr::Any)
+        input.parse::<Token![_]>().map(|_| ParseTree::Any)
     } else if input.peek(Ident) && input.peek2(token::Paren) {
         let id = input.parse::<Ident>()?;
         let content;
         parenthesized!(content in input);
-        let vals: Punctuated<Expr, Token![,]>;
-        vals = content.parse_terminated(Expr::parse)?;
-        Ok(Expr::Node(
+        let vals: Punctuated<ParseTree, Token![,]>;
+        vals = content.parse_terminated(ParseTree::parse)?;
+        Ok(ParseTree::Node(
             id,
             vals.into_iter().collect()
         ))
     /*} else if input.peek(Ident) {
-        input.parse().map(Expr::Ident)*/
+        input.parse().map(ParseTree::Ident)*/
     } else if input.peek(token::Paren) {
         let content;
         parenthesized!(content in input);
         if content.is_empty() {
-            return Ok(Expr::Empty);
+            return Ok(ParseTree::Empty);
         }
-        let first: Expr = content.parse()?;
+        let first: ParseTree = content.parse()?;
         Ok(first)
     } else {
         match input.parse::<syn::Lit>() {
-            Ok(e) => Ok(Expr::Lit(e)),
+            Ok(e) => Ok(ParseTree::Lit(e)),
             Err(_) => Err(input.error("unsupported expression; enable syn's features=[\"full\"]"))
         }
     }
@@ -223,9 +223,9 @@ fn atom_expr(input: ParseStream) -> Result<Expr> {
 
 fn parse_expr(
     input: ParseStream,
-    mut lhs: Expr,
+    mut lhs: ParseTree,
     base: Precedence,
-) -> Result<Expr> {
+) -> Result<ParseTree> {
     loop {
         if input
             .fork()
@@ -245,8 +245,8 @@ fn parse_expr(
                 }
             }
             lhs = match op {
-                BinOp::Seq => Expr::Seq(Box::new(lhs), Box::new(rhs)),
-                BinOp::Or => Expr::Alt(Box::new(lhs), Box::new(rhs))
+                BinOp::Seq => ParseTree::Seq(Box::new(lhs), Box::new(rhs)),
+                BinOp::Or => ParseTree::Alt(Box::new(lhs), Box::new(rhs))
             }
         } else {
             break;
@@ -268,8 +268,8 @@ mod tests {
 
     use super::*;
 
-    fn parse_test(input: &'static str, exp: Expr) {
-        let res = syn::parse_str::<Expr>(input);
+    fn parse_test(input: &'static str, exp: ParseTree) {
+        let res = syn::parse_str::<ParseTree>(input);
         assert_eq!(res.ok(), Some(exp));
     }
 
@@ -279,25 +279,25 @@ mod tests {
 
     #[test]
     fn any() {
-        parse_test("_", Expr::Any);
+        parse_test("_", ParseTree::Any);
     }
 
     #[test]
     fn empty() {
         parse_test(
             "()",
-            Expr::Empty
+            ParseTree::Empty
         )
     }
 
     #[test]
     fn lit() {
-        let exp = Expr::Lit(
+        let exp = ParseTree::Lit(
             syn::Lit::Int(int_lit(123))
         );
         parse_test("123", exp);
 
-        let exp = Expr::Lit(
+        let exp = ParseTree::Lit(
             syn::Lit::Bool(
                 syn::LitBool {
                     value: false,
@@ -312,8 +312,8 @@ mod tests {
     fn named() {
         parse_test(
             "_#test", 
-            Expr::Named(
-                Box::new(Expr::Any), 
+            ParseTree::Named(
+                Box::new(ParseTree::Any), 
                 proc_macro2::Ident::new("test", proc_macro2::Span::call_site())
             )
         );
@@ -323,29 +323,29 @@ mod tests {
     fn repeat() {
         parse_test(
             "_*", 
-            Expr::Repeat(
-                Box::new(Expr::Any), 
+            ParseTree::Repeat(
+                Box::new(ParseTree::Any), 
                 RepeatKind::Any
             )
         );
         parse_test(
             "_+", 
-            Expr::Repeat(
-                Box::new(Expr::Any), 
+            ParseTree::Repeat(
+                Box::new(ParseTree::Any), 
                 RepeatKind::Plus
             )
         );
         parse_test(
             "_?", 
-            Expr::Repeat(
-                Box::new(Expr::Any), 
+            ParseTree::Repeat(
+                Box::new(ParseTree::Any), 
                 RepeatKind::Optional
             )
         );
         parse_test(
             "_{3, 4}", 
-            Expr::Repeat(
-                Box::new(Expr::Any), 
+            ParseTree::Repeat(
+                Box::new(ParseTree::Any), 
                 RepeatKind::Range(
                     int_lit(3),
                     Some(int_lit(4)),
@@ -354,8 +354,8 @@ mod tests {
         );
         parse_test(
             "_{3, }", 
-            Expr::Repeat(
-                Box::new(Expr::Any), 
+            ParseTree::Repeat(
+                Box::new(ParseTree::Any), 
                 RepeatKind::Range(
                     int_lit(3),
                     None,
@@ -364,8 +364,8 @@ mod tests {
         );
         parse_test(
             "_{3}", 
-            Expr::Repeat(
-                Box::new(Expr::Any), 
+            ParseTree::Repeat(
+                Box::new(ParseTree::Any), 
                 RepeatKind::Repeat(
                     int_lit(3)
                 )
@@ -378,19 +378,19 @@ mod tests {
     fn seq() {
         parse_test(
             "_ 1", 
-            Expr::Seq(
-                Box::new(Expr::Any), 
-                Box::new(Expr::Lit(syn::Lit::Int(int_lit(1))))
+            ParseTree::Seq(
+                Box::new(ParseTree::Any), 
+                Box::new(ParseTree::Lit(syn::Lit::Int(int_lit(1))))
             )
         );
         parse_test(
             "1 2 3", 
-            Expr::Seq(
-                Box::new(Expr::Seq(
-                    Box::new(Expr::Lit(syn::Lit::Int(int_lit(1)))),
-                    Box::new(Expr::Lit(syn::Lit::Int(int_lit(2))))
+            ParseTree::Seq(
+                Box::new(ParseTree::Seq(
+                    Box::new(ParseTree::Lit(syn::Lit::Int(int_lit(1)))),
+                    Box::new(ParseTree::Lit(syn::Lit::Int(int_lit(2))))
                 )),
-                Box::new(Expr::Lit(syn::Lit::Int(int_lit(3))))
+                Box::new(ParseTree::Lit(syn::Lit::Int(int_lit(3))))
             )
         );
     }
@@ -400,19 +400,19 @@ mod tests {
     fn alt() {
         parse_test(
             "_ | 1", 
-            Expr::Alt(
-                Box::new(Expr::Any), 
-                Box::new(Expr::Lit(syn::Lit::Int(int_lit(1))))
+            ParseTree::Alt(
+                Box::new(ParseTree::Any), 
+                Box::new(ParseTree::Lit(syn::Lit::Int(int_lit(1))))
             )
         );
         parse_test(
             "1|2|3",
-            Expr::Alt(
-                Box::new(Expr::Alt(
-                    Box::new(Expr::Lit(syn::Lit::Int(int_lit(1)))),
-                    Box::new(Expr::Lit(syn::Lit::Int(int_lit(2))))
+            ParseTree::Alt(
+                Box::new(ParseTree::Alt(
+                    Box::new(ParseTree::Lit(syn::Lit::Int(int_lit(1)))),
+                    Box::new(ParseTree::Lit(syn::Lit::Int(int_lit(2))))
                 )),
-                Box::new(Expr::Lit(syn::Lit::Int(int_lit(3))))
+                Box::new(ParseTree::Lit(syn::Lit::Int(int_lit(3))))
             )
         );
     }
@@ -421,27 +421,27 @@ mod tests {
     fn node() {
         parse_test(
             "Test()", 
-            Expr::Node(
+            ParseTree::Node(
                 proc_macro2::Ident::new("Test", proc_macro2::Span::call_site()),
                 vec!()
             )
         );
         parse_test(
             "Test(1)", 
-            Expr::Node(
+            ParseTree::Node(
                 proc_macro2::Ident::new("Test", proc_macro2::Span::call_site()),
                 vec!(
-                    Expr::Lit(syn::Lit::Int(int_lit(1)))
+                    ParseTree::Lit(syn::Lit::Int(int_lit(1)))
                 )
             )
         );
         parse_test(
             "Test(1,2)", 
-            Expr::Node(
+            ParseTree::Node(
                 proc_macro2::Ident::new("Test", proc_macro2::Span::call_site()),
                 vec!(
-                    Expr::Lit(syn::Lit::Int(int_lit(1))),
-                    Expr::Lit(syn::Lit::Int(int_lit(2)))
+                    ParseTree::Lit(syn::Lit::Int(int_lit(1))),
+                    ParseTree::Lit(syn::Lit::Int(int_lit(2)))
                 )
             )
         );
@@ -452,23 +452,23 @@ mod tests {
         // alt < seq
         parse_test(
             "_ _ | _",  // ( _ _ ) | ( _ )
-            Expr::Alt(
-                Box::new(Expr::Seq(
-                    Box::new(Expr::Any),
-                    Box::new(Expr::Any)
+            ParseTree::Alt(
+                Box::new(ParseTree::Seq(
+                    Box::new(ParseTree::Any),
+                    Box::new(ParseTree::Any)
                 )),
-                Box::new(Expr::Any)
+                Box::new(ParseTree::Any)
             )
         );
         // alt < seq < named
         parse_test(
             "_ | _ _ #name",  // ( _ ) | ( _ ( _ #name ) )
-            Expr::Alt(
-                Box::new(Expr::Any),
-                Box::new(Expr::Seq(
-                    Box::new(Expr::Any),
-                    Box::new(Expr::Named(
-                        Box::new(Expr::Any),
+            ParseTree::Alt(
+                Box::new(ParseTree::Any),
+                Box::new(ParseTree::Seq(
+                    Box::new(ParseTree::Any),
+                    Box::new(ParseTree::Named(
+                        Box::new(ParseTree::Any),
                         proc_macro2::Ident::new("name", proc_macro2::Span::call_site())
                     ))
                 )),

@@ -1,5 +1,5 @@
 use common::Ty;
-use crate::parse::Expr as ParseTree;
+use crate::parse::ParseTree;
 use crate::parse::RepeatKind;
 use std::collections::HashMap;
 use syn::Ident;
