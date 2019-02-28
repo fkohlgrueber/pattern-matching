@@ -1,5 +1,5 @@
 [package]
-name = "gen_pattern_tree"
+name = "pattern-tree-macro"
 version = "0.1.0"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
@@ -13,5 +13,5 @@ lazy_static = "1.2.0"
 
 [lib]
 proc-macro = true
-path = "gen_pattern_tree.rs"
+path = "src/pattern_tree_macro.rs"
 doctest = false

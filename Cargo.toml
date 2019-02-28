@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-    "gen_pattern_tree",
+    "pattern-tree-macro",
     "pattern",
     "pattern_match",
     "test",

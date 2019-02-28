@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 common = { path = "../common" }
-gen_pattern_tree = { path = "../gen_pattern_tree" }
+pattern-tree-macro = { path = "../pattern-tree-macro" }
 lazy_static = "1.2.0"
 itertools = "0.8.0"
 

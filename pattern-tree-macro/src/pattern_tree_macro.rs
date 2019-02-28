@@ -46,7 +46,7 @@ impl ToTokens for Enums {
 
 
 #[proc_macro]
-pub fn gen_pattern_tree(input: TokenStream) -> TokenStream {
+pub fn pattern_tree(input: TokenStream) -> TokenStream {
     
     // parse input
     let enums = syn::parse_macro_input!(input as Enums);

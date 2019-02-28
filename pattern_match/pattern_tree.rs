@@ -1,5 +1,5 @@
 
-use gen_pattern_tree::gen_pattern_tree;
+use pattern_tree_macro::pattern_tree;
 
 use lazy_static::lazy_static;
 
@@ -35,7 +35,7 @@ Stmt = Expr(Expr)
 */
 
 
-gen_pattern_tree!{
+pattern_tree!{
     #[derive(Debug)]
     pub enum Expr<'cx, 'o, Cx, A>
     where
