@@ -7,7 +7,7 @@ extern crate syntax;
 use pattern::pattern;
 
 pattern!{
-    PAT_IF_WITHOUT_ELSE: Alt<Expr> = 
+    PAT_IF_WITHOUT_ELSE: Expr = 
         If(
             _#check,
             Block(
@@ -19,7 +19,7 @@ pattern!{
 }
 
 pattern!{
-    PAT_IF_2: Alt<Expr> = 
+    PAT_IF_2: Expr = 
         If(
             _, 
             _, 
@@ -42,7 +42,7 @@ pattern!{
 }
 
 pattern!(
-    PAT_SIMPLE: Alt<Expr> = 
+    PAT_SIMPLE: Expr = 
         Lit(Bool(false#test)) |
         Array(
             Lit(Char('a')) * 
@@ -57,12 +57,12 @@ pattern!(
 );
 
 pattern!(
-    PAT: Alt<Expr> = 
+    PAT: Expr = 
         Lit(Bool(_#var)#var2)#var3
 );
 
 pattern!(
-    PAT_NESTED: Alt<Expr> = 
+    PAT_NESTED: Expr = 
         Array( Array(_*#var_inner)* )
 );
 

@@ -103,11 +103,16 @@ impl Parse for Pattern {
         
         input.parse::<Token![:]>()?;
         
-        // parse type
-        let repeat_ty = input.parse()?;
-        input.parse::<Token![<]>()?;
-        let ty = input.parse()?;
-        input.parse::<Token![>]>()?;
+        // parse type (either `ident` or `ident<ident>`)
+        let (ty, repeat_ty) = if input.peek2(Token![<]) {
+            let repeat_ty = input.parse()?;
+            input.parse::<Token![<]>()?;
+            let ty = input.parse()?;
+            input.parse::<Token![>]>()?;
+            (ty, repeat_ty)
+        } else {
+            (input.parse()?, common::Ty::Alt)
+        };
         
         input.parse::<Token![=]>()?;
         
