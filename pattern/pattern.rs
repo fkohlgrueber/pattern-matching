@@ -267,19 +267,19 @@ pub fn pattern(item: TokenStream) -> TokenStream {
 
         #[derive(Debug)]
         pub struct #struct_name<'o, A>
-        where A: pattern_match::MatchAssociations<'o> {
+        where A: pattern_match::pattern_tree::MatchAssociations<'o> {
             #(#result_items)*
         }
 
         #[derive(Debug)]
         pub struct #struct_tmp_name<'o, A>
-        where A: pattern_match::MatchAssociations<'o> {
+        where A: pattern_match::pattern_tree::MatchAssociations<'o> {
             #(#result_tmp_items)*
         }
         
         fn #name <'o, A, P> (node: &'o P) -> Option<#struct_name<'o, A>> 
         where 
-            A: pattern_match::MatchAssociations<'o, Expr=P>,
+            A: pattern_match::pattern_tree::MatchAssociations<'o, Expr=P>,
             P: std::fmt::Debug,
             for<'cx> pattern_match::pattern_tree::Expr<'cx, 'o, #struct_tmp_name<'o, A>, A>: pattern_match::IsMatch<
                 'cx, 

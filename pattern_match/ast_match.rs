@@ -1,6 +1,6 @@
 
 use crate::pattern_tree::*;
-use crate::{IsMatch, Reduce, PatternTreeNode, MatchAssociations};
+use crate::{IsMatch, Reduce, PatternTreeNode};
 use syntax::ast;
 
 #[derive(Debug)]

@@ -1,5 +1,4 @@
 use crate::{IsMatch, Reduce};
-use crate::MatchAssociations;
 use crate::pattern_tree::*;
 
 // Dummy Ast Nodes

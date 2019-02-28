@@ -4,8 +4,18 @@ use gen_pattern_tree::gen_pattern_tree;
 use lazy_static::lazy_static;
 
 use crate::matchers::*;
+use std::fmt::Debug;
 
-use crate::MatchAssociations;
+pub trait MatchAssociations<'o> 
+where Self: Sized {
+    type Expr: 'o + Debug;
+    type Lit: 'o + Debug;
+    type Bool: 'o + Debug;
+    type Char: 'o + Debug;
+    type Int: 'o + Debug;
+    type Stmt: 'o + Debug;
+    type BlockType: 'o + Debug;
+}
 
 /*
 Expr = Lit(Lit)
