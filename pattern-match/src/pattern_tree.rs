@@ -1,7 +1,5 @@
 
-use pattern_tree_macro::pattern_tree;
-
-use lazy_static::lazy_static;
+use pattern_tree::pattern_tree;
 
 use crate::matchers::*;
 use std::fmt::Debug;

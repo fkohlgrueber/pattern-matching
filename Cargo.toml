@@ -6,5 +6,6 @@ members = [
     "pattern-match",
     "test",
     "common",
-    "pattern"
+    "pattern",
+    "pattern-tree"
 ]
