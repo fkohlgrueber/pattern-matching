@@ -4,7 +4,7 @@
 
 extern crate syntax;
 
-use pattern_macro::pattern;
+use pattern::pattern;
 
 pattern!{
     PAT_IF_WITHOUT_ELSE: Alt<Expr> = 
@@ -80,7 +80,7 @@ fn test() {
     //println!("THIS IS THE PATTERN: {:?}", *PAT);
 
     
-    use pattern_match::dummy_ast_match::*;
+    use pattern::pattern_match::dummy_ast_match::*;
 
     let ast_node = DummyExpr::Lit(DummyLit::Bool(false));
 

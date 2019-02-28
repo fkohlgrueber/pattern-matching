@@ -1,5 +1,5 @@
 [package]
-name = "pattern_match"
+name = "pattern-match"
 version = "0.1.0"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"

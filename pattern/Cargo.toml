@@ -1,12 +1,13 @@
 [package]
-name = "test"
+name = "pattern"
 version = "0.1.0"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-pattern = { path = "../pattern" }
+pattern-macro = { path = "../pattern-macro" }
+pattern-match = { path = "../pattern-match" }
 
 [lib]
 doctest = false
-path = "src/test.rs"
+path = "src/pattern.rs"
