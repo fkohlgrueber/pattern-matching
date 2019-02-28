@@ -8,6 +8,8 @@ use proc_macro::TokenStream;
 use quote::quote;
 
 mod parse;
+mod result_struct;
+use crate::result_struct::gen_result_structs;
 
 use crate::parse::Expr as ParseExpr;
 use crate::parse::RepeatKind;
@@ -187,64 +189,14 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     // for each named subpattern, get its type
     let named_subpattern_types = get_named_subpattern_types(&node, &ty);
 
-    
-    let result_tmp_items = named_subpattern_types.iter().map(
-        |(k, v)| {
-            let e = &v.inner_ty; 
-            match &v.ty {
-                Ty::Alt => quote!( #k: Option<&'o A::#e>, ),
-                Ty::Opt => quote!( #k: Option<&'o A::#e>, ),
-                Ty::Seq => quote!( #k: Vec<&'o A::#e>, ),
-            }
-        }
-    ).collect::<Vec<_>>();
-
-
-    let result_items = named_subpattern_types.iter().map(
-        |(k, v)| {
-            let e = &v.inner_ty; 
-            match &v.ty {
-                Ty::Alt => quote!( #k: &'o A::#e, ),
-                Ty::Opt => quote!( #k: Option<&'o A::#e>, ),
-                Ty::Seq => quote!( #k: Vec<&'o A::#e>, ),
-            }
-        }
-    ).collect::<Vec<_>>();
-
-    let init_tmp_items = named_subpattern_types.iter().map(
-        |(k, v)| {
-            match &v.ty {
-                Ty::Alt => quote!( #k: None, ),
-                Ty::Opt => quote!( #k: None, ),
-                Ty::Seq => quote!( #k: vec!(), ),
-            }
-        }
-    ).collect::<Vec<_>>();
-
-    let init_items = named_subpattern_types.iter().map(
-        |(k, v)| {
-            match &v.ty {
-                Ty::Alt => quote!( #k: cx.#k.unwrap(), ),
-                Ty::Opt => quote!( #k: cx.#k, ),
-                Ty::Seq => quote!( #k: cx.#k, ),
-            }
-        }
-    ).collect::<Vec<_>>();
 
     let tokens = to_tokens(&node, &repeat_ty, &named_subpattern_types);
+
+    let result_structs = gen_result_structs(&struct_tmp_name, &struct_name, &named_subpattern_types);
+
     quote!(
 
-        #[derive(Debug)]
-        pub struct #struct_name<'o, A>
-        where A: pattern::pattern_match::pattern_tree::MatchAssociations<'o> {
-            #(#result_items)*
-        }
-
-        #[derive(Debug)]
-        pub struct #struct_tmp_name<'o, A>
-        where A: pattern::pattern_match::pattern_tree::MatchAssociations<'o> {
-            #(#result_tmp_items)*
-        }
+        #result_structs
         
         fn #name <'o, A, P> (node: &'o P) -> Option<#struct_name<'o, A>> 
         where 
@@ -272,15 +224,11 @@ pub fn pattern(item: TokenStream) -> TokenStream {
                 A::Expr
             > = #tokens;
 
-            let mut cx = #struct_tmp_name {
-                #(#init_tmp_items)*
-            };
+            let mut cx = #struct_tmp_name::new();
 
             let (r, cx_out) = pattern.is_match(&mut cx, node);
             if r {
-                Some(#struct_name {
-                    #(#init_items)*
-                })
+                Some(cx.into())
             } else {
                 None
             }
