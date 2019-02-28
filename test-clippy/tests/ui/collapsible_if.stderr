@@ -1,11 +1,11 @@
 error: this if statement can be collapsed
   --> $DIR/collapsible_if.rs:15:5
    |
-15 | /     if x == "hello" {
-16 | |         if y == "world" {
-17 | |             println!("Hello world!");
-18 | |         }
-19 | |     }
+LL | /     if x == "hello" {
+LL | |         if y == "world" {
+LL | |             println!("Hello world!");
+LL | |         }
+LL | |     }
    | |_____^
    |
    = note: #[forbid(simple_pattern)] on by default
@@ -13,139 +13,139 @@ error: this if statement can be collapsed
 error: this if statement can be collapsed
   --> $DIR/collapsible_if.rs:21:5
    |
-21 | /     if x == "hello" || x == "world" {
-22 | |         if y == "world" || y == "hello" {
-23 | |             println!("Hello world!");
-24 | |         }
-25 | |     }
+LL | /     if x == "hello" || x == "world" {
+LL | |         if y == "world" || y == "hello" {
+LL | |             println!("Hello world!");
+LL | |         }
+LL | |     }
    | |_____^
 
 error: this if statement can be collapsed
   --> $DIR/collapsible_if.rs:27:5
    |
-27 | /     if x == "hello" && x == "world" {
-28 | |         if y == "world" || y == "hello" {
-29 | |             println!("Hello world!");
-30 | |         }
-31 | |     }
+LL | /     if x == "hello" && x == "world" {
+LL | |         if y == "world" || y == "hello" {
+LL | |             println!("Hello world!");
+LL | |         }
+LL | |     }
    | |_____^
 
 error: this if statement can be collapsed
   --> $DIR/collapsible_if.rs:33:5
    |
-33 | /     if x == "hello" || x == "world" {
-34 | |         if y == "world" && y == "hello" {
-35 | |             println!("Hello world!");
-36 | |         }
-37 | |     }
+LL | /     if x == "hello" || x == "world" {
+LL | |         if y == "world" && y == "hello" {
+LL | |             println!("Hello world!");
+LL | |         }
+LL | |     }
    | |_____^
 
 error: this if statement can be collapsed
   --> $DIR/collapsible_if.rs:39:5
    |
-39 | /     if x == "hello" && x == "world" {
-40 | |         if y == "world" && y == "hello" {
-41 | |             println!("Hello world!");
-42 | |         }
-43 | |     }
+LL | /     if x == "hello" && x == "world" {
+LL | |         if y == "world" && y == "hello" {
+LL | |             println!("Hello world!");
+LL | |         }
+LL | |     }
    | |_____^
 
 error: this if statement can be collapsed
   --> $DIR/collapsible_if.rs:45:5
    |
-45 | /     if 42 == 1337 {
-46 | |         if 'a' != 'A' {
-47 | |             println!("world!")
-48 | |         }
-49 | |     }
+LL | /     if 42 == 1337 {
+LL | |         if 'a' != 'A' {
+LL | |             println!("world!")
+LL | |         }
+LL | |     }
    | |_____^
 
 error: this `else { if .. }` block can be collapsed
   --> $DIR/collapsible_if.rs:54:12
    |
-54 |       } else {
+LL |       } else {
    |  ____________^
-55 | |         if y == "world" {
-56 | |             println!("world!")
-57 | |         }
-58 | |     }
+LL | |         if y == "world" {
+LL | |             println!("world!")
+LL | |         }
+LL | |     }
    | |_____^
 
 error: this `else { if .. }` block can be collapsed
   --> $DIR/collapsible_if.rs:62:12
    |
-62 |       } else {
+LL |       } else {
    |  ____________^
-63 | |         if let Some(42) = Some(42) {
-64 | |             println!("world!")
-65 | |         }
-66 | |     }
+LL | |         if let Some(42) = Some(42) {
+LL | |             println!("world!")
+LL | |         }
+LL | |     }
    | |_____^
 
 error: this `else { if .. }` block can be collapsed
   --> $DIR/collapsible_if.rs:70:12
    |
-70 |       } else {
+LL |       } else {
    |  ____________^
-71 | |         if y == "world" {
-72 | |             println!("world")
-73 | |         }
+LL | |         if y == "world" {
+LL | |             println!("world")
+LL | |         }
 ...  |
-76 | |         }
-77 | |     }
+LL | |         }
+LL | |     }
    | |_____^
 
 error: this `else { if .. }` block can be collapsed
   --> $DIR/collapsible_if.rs:81:12
    |
-81 |       } else {
+LL |       } else {
    |  ____________^
-82 | |         if let Some(42) = Some(42) {
-83 | |             println!("world")
-84 | |         }
+LL | |         if let Some(42) = Some(42) {
+LL | |             println!("world")
+LL | |         }
 ...  |
-87 | |         }
-88 | |     }
+LL | |         }
+LL | |     }
    | |_____^
 
 error: this `else { if .. }` block can be collapsed
   --> $DIR/collapsible_if.rs:92:12
    |
-92 |       } else {
+LL |       } else {
    |  ____________^
-93 | |         if let Some(42) = Some(42) {
-94 | |             println!("world")
-95 | |         }
+LL | |         if let Some(42) = Some(42) {
+LL | |             println!("world")
+LL | |         }
 ...  |
-98 | |         }
-99 | |     }
+LL | |         }
+LL | |     }
    | |_____^
 
 error: this `else { if .. }` block can be collapsed
-   --> $DIR/collapsible_if.rs:103:12
-    |
-103 |       } else {
-    |  ____________^
-104 | |         if x == "hello" {
-105 | |             println!("world")
-106 | |         }
-...   |
-109 | |         }
-110 | |     }
-    | |_____^
+  --> $DIR/collapsible_if.rs:103:12
+   |
+LL |       } else {
+   |  ____________^
+LL | |         if x == "hello" {
+LL | |             println!("world")
+LL | |         }
+...  |
+LL | |         }
+LL | |     }
+   | |_____^
 
 error: this `else { if .. }` block can be collapsed
-   --> $DIR/collapsible_if.rs:114:12
-    |
-114 |       } else {
-    |  ____________^
-115 | |         if let Some(42) = Some(42) {
-116 | |             println!("world")
-117 | |         }
-...   |
-120 | |         }
-121 | |     }
-    | |_____^
+  --> $DIR/collapsible_if.rs:114:12
+   |
+LL |       } else {
+   |  ____________^
+LL | |         if let Some(42) = Some(42) {
+LL | |             println!("world")
+LL | |         }
+...  |
+LL | |         }
+LL | |     }
+   | |_____^
 
 error: aborting due to 13 previous errors
 

@@ -5,9 +5,10 @@ fn run_mode(mode: &'static str) {
 
     config.mode = mode.parse().expect("Invalid mode");
     config.src_base = PathBuf::from(format!("tests/{}", mode));
+    config.target_rustcflags = Some(r"-Zui-testing".to_owned());
     // hack to make this work on Windows
     if cfg!(windows) {
-        config.target_rustcflags = Some(r"-L C:\Users\felix\.rustup\toolchains\nightly-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib -L ../target/debug/ -L ../target/debug/deps/".to_owned());
+        config.target_rustcflags = Some(r"-L C:\Users\felix\.rustup\toolchains\nightly-x86_64-pc-windows-msvc\lib\rustlib\x86_64-pc-windows-msvc\lib -L ../target/debug/ -L ../target/debug/deps/ -Zui-testing".to_owned());
     } else {
         config.link_deps(); // Populate config.target_rustcflags with dependencies on the path
     };

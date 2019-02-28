@@ -1,40 +1,40 @@
 error: This is a match for a simple pattern. Well Done!
- --> $DIR/simple_pattern.rs:6:9
-  |
-6 |     if (false) {
-  |         ^^^^^
-  |
-  = note: #[forbid(simple_pattern)] on by default
+  --> $DIR/simple_pattern.rs:6:9
+   |
+LL |     if (false) {
+   |         ^^^^^
+   |
+   = note: #[forbid(simple_pattern)] on by default
 
 error: This is a match for a simple pattern. Well Done!
   --> $DIR/simple_pattern.rs:10:13
    |
-10 |     let a = ['b', 'c'];
+LL |     let a = ['b', 'c'];
    |             ^^^^^^^^^^
 
 error: This is a match for a simple pattern. Well Done!
   --> $DIR/simple_pattern.rs:11:13
    |
-11 |     let b = ['b', 'b', 'c'];
+LL |     let b = ['b', 'b', 'c'];
    |             ^^^^^^^^^^^^^^^
 
 error: This is a match for a simple pattern. Well Done!
   --> $DIR/simple_pattern.rs:18:13
    |
-18 |       let y = if true {
+LL |       let y = if true {
    |  _____________^
-19 | |         123
-20 | |     } else {
-21 | |         456
-22 | |     };
+LL | |         123
+LL | |     } else {
+LL | |         456
+LL | |     };
    | |_____^
 
 error: This is a match for a simple pattern. Well Done!
   --> $DIR/simple_pattern.rs:23:5
    |
-23 | /     if true {
-24 | |         true;
-25 | |     }
+LL | /     if true {
+LL | |         true;
+LL | |     }
    | |_____^
 
 error: aborting due to 5 previous errors
