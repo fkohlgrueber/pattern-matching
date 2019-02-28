@@ -16,13 +16,6 @@ use crate::parse::Pattern;
 use common::Ty;
 use pattern_match::pattern_tree::TYPES;
 
-#[derive(Debug, Clone, PartialEq)]
-enum ResTy<T> {
-    Elmt(T),
-    Seq(Box<ResTy<T>>),
-    Opt(Box<ResTy<T>>)
-}
-
 #[derive(Debug, Clone)]
 struct PatTy {
     inner_ty: Ident,
@@ -55,7 +48,7 @@ fn get_repeat_type(input: &parse::Expr) -> Ty {
     }
 }
 
-fn get_named_subpattern_types(input: &parse::Expr, ty: &Ident) -> HashMap<Ident, ResTy<Ident>> {
+fn get_named_subpattern_types(input: &parse::Expr, ty: &Ident) -> HashMap<Ident, PatTy> {
     match input {
         parse::Expr::Node(id, args) => {
             let tys = TYPES.get(id.to_string().as_str()).expect("Unknown Node");
@@ -86,20 +79,24 @@ fn get_named_subpattern_types(input: &parse::Expr, ty: &Ident) -> HashMap<Ident,
             // if an element is only present on one branch, it's type needs to be Option<_>
             for (i, i_ty) in &a_hm {
                 if !b_hm.contains_key(&i) {
-                    let res_ty = match &i_ty {
-                        // don't wrap with Option<_> if i_ty is Option<_> already
-                        ResTy::Opt(_) => i_ty.clone(),
-                        _ => ResTy::Opt(Box::new((*i_ty).clone()))
+                    let res_ty = PatTy {
+                        inner_ty: i_ty.inner_ty.clone(),
+                        ty: match &i_ty.ty {
+                            Ty::Alt => Ty::Opt,
+                            t => t.clone()
+                        }
                     };
                     res.insert((*i).clone(), res_ty);
                 }
             }
             for (i, i_ty) in &b_hm {
                 if !a_hm.contains_key(&i) {
-                    let res_ty = match &i_ty {
-                        // don't wrap with Option<_> if i_ty is Option<_> already
-                        ResTy::Opt(_) => i_ty.clone(),
-                        _ => ResTy::Opt(Box::new((*i_ty).clone()))
+                    let res_ty = PatTy {
+                        inner_ty: i_ty.inner_ty.clone(),
+                        ty: match &i_ty.ty {
+                            Ty::Alt => Ty::Opt,
+                            t => t.clone()
+                        }
                     };
                     res.insert((*i).clone(), res_ty);
                 }
@@ -108,18 +105,23 @@ fn get_named_subpattern_types(input: &parse::Expr, ty: &Ident) -> HashMap<Ident,
             // elmts that are in both hashmaps
             for (i, i_ty) in &a_hm {
                 if let Some(j_ty) = b_hm.get(&i) {
-                    // exact equality
-                    if i_ty == j_ty {
-                        res.insert((*i).clone(), (*i_ty).clone());
-                    // i_ty = Option<j_ty>
-                    } else if i_ty == &ResTy::Opt(Box::new((*j_ty).clone())) {
-                        res.insert((*i).clone(), (*i_ty).clone());
-                    // Option<i_ty> = j_ty
-                    } else if &ResTy::Opt(Box::new((*i_ty).clone())) == j_ty {
-                        res.insert((*i).clone(), (*j_ty).clone());
-                    } else {
+                    if i_ty.inner_ty != j_ty.inner_ty {
                         panic!("Multiple occurances of the same #name need to have the same type.")
                     }
+                    
+                    let res_ty = PatTy {
+                        inner_ty: i_ty.inner_ty.clone(),
+                        ty: match (&i_ty.ty, &j_ty.ty) {
+                            // if one is Seq => Seq
+                            // if one is Opt => Opt
+                            // else Alt
+                            (Ty::Alt, Ty::Alt) => Ty::Alt,
+                            (Ty::Seq, _) => Ty::Seq,
+                            (_, Ty::Seq) => Ty::Seq,
+                            _ => Ty::Opt
+                        }
+                    };
+                    res.insert((*i).clone(), res_ty);
                 }
             }
 
@@ -133,14 +135,8 @@ fn get_named_subpattern_types(input: &parse::Expr, ty: &Ident) -> HashMap<Ident,
 
             // repeat type (single, optional, multiple) is determined by looking at own children (bottom-up)
             let repeat_type = get_repeat_type(e);
-
-            let res_ty = match repeat_type {
-                Ty::Alt => ResTy::Elmt(inner_ty.clone()),
-                Ty::Seq => ResTy::Seq(Box::new(ResTy::Elmt(inner_ty.clone()))),
-                Ty::Opt => ResTy::Opt(Box::new(ResTy::Elmt(inner_ty.clone()))),
-            };
             
-            h.insert(id.clone(), res_ty);
+            h.insert(id.clone(), PatTy { ty: repeat_type, inner_ty: inner_ty.clone()});
             h
         },
         parse::Expr::Lit(_l) => HashMap::new(),
@@ -193,59 +189,45 @@ pub fn pattern(item: TokenStream) -> TokenStream {
 
     
     let result_tmp_items = named_subpattern_types.iter().map(
-        |(k, v)| match v {
-            ResTy::Elmt(e) => quote!( #k: Option<&'o A::#e>, ),
-            ResTy::Opt(o) => match &**o {
-                ResTy::Elmt(e) => quote!( #k: Option<&'o A::#e>, ),
-                _ => panic!("This is not implemented yet!!")
-            },
-            ResTy::Seq(s) => match &**s {
-                ResTy::Elmt(e) => quote!( #k: Vec<&'o A::#e>, ),
-                _ => panic!("This is not implemented yet!!")
-            },
+        |(k, v)| {
+            let e = &v.inner_ty; 
+            match &v.ty {
+                Ty::Alt => quote!( #k: Option<&'o A::#e>, ),
+                Ty::Opt => quote!( #k: Option<&'o A::#e>, ),
+                Ty::Seq => quote!( #k: Vec<&'o A::#e>, ),
+            }
         }
     ).collect::<Vec<_>>();
 
 
     let result_items = named_subpattern_types.iter().map(
-        |(k, v)| match v {
-            ResTy::Elmt(e) => quote!( #k: &'o A::#e, ),
-            ResTy::Opt(o) => match &**o {
-                ResTy::Elmt(e) => quote!( #k: Option<&'o A::#e>, ),
-                _ => panic!("This is not implemented yet!!")
-            },
-            ResTy::Seq(s) => match &**s {
-                ResTy::Elmt(e) => quote!( #k: Vec<&'o A::#e>, ),
-                _ => panic!("This is not implemented yet!!")
-            },
+        |(k, v)| {
+            let e = &v.inner_ty; 
+            match &v.ty {
+                Ty::Alt => quote!( #k: &'o A::#e, ),
+                Ty::Opt => quote!( #k: Option<&'o A::#e>, ),
+                Ty::Seq => quote!( #k: Vec<&'o A::#e>, ),
+            }
         }
     ).collect::<Vec<_>>();
 
     let init_tmp_items = named_subpattern_types.iter().map(
-        |(k, v)| match v {
-            ResTy::Elmt(_e) => quote!( #k: None, ),
-            ResTy::Opt(o) => match &**o {
-                ResTy::Elmt(_e) => quote!( #k: None, ),
-                _ => panic!("This is not implemented yet!!")
-            },
-            ResTy::Seq(s) => match &**s {
-                ResTy::Elmt(_e) => quote!( #k: vec!(), ),
-                _ => panic!("This is not implemented yet!!")
-            },
+        |(k, v)| {
+            match &v.ty {
+                Ty::Alt => quote!( #k: None, ),
+                Ty::Opt => quote!( #k: None, ),
+                Ty::Seq => quote!( #k: vec!(), ),
+            }
         }
     ).collect::<Vec<_>>();
 
     let init_items = named_subpattern_types.iter().map(
-        |(k, v)| match v {
-            ResTy::Elmt(_e) => quote!( #k: cx.#k.unwrap(), ),
-            ResTy::Opt(o) => match &**o {
-                ResTy::Elmt(_e) => quote!( #k: cx.#k, ),
-                _ => panic!("This is not implemented yet!!")
-            },
-            ResTy::Seq(s) => match &**s {
-                ResTy::Elmt(_e) => quote!( #k: cx.#k, ),
-                _ => panic!("This is not implemented yet!!")
-            },
+        |(k, v)| {
+            match &v.ty {
+                Ty::Alt => quote!( #k: cx.#k.unwrap(), ),
+                Ty::Opt => quote!( #k: cx.#k, ),
+                Ty::Seq => quote!( #k: cx.#k, ),
+            }
         }
     ).collect::<Vec<_>>();
 
@@ -306,7 +288,7 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     ).into()
 }
 
-fn to_tokens(parse_tree: &ParseExpr, ty: &Ty, named_types: &HashMap<Ident, ResTy<Ident>>) -> proc_macro2::TokenStream {
+fn to_tokens(parse_tree: &ParseExpr, ty: &Ty, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
     match ty {
         Ty::Alt => to_tokens_alt(parse_tree, named_types),
         Ty::Opt => to_tokens_opt(parse_tree, named_types),
@@ -314,7 +296,7 @@ fn to_tokens(parse_tree: &ParseExpr, ty: &Ty, named_types: &HashMap<Ident, ResTy
     }
 }
 
-fn node_to_tokens(ident: &proc_macro2::Ident, args: &Vec<ParseExpr>, named_types: &HashMap<Ident, ResTy<Ident>>) -> proc_macro2::TokenStream {
+fn node_to_tokens(ident: &proc_macro2::Ident, args: &Vec<ParseExpr>, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
     let tys = TYPES.get(ident.to_string().as_str()).expect("Unknown Node");
     if tys.len() != args.len() { panic!("Wrong number of arguments") }
     let tokens = args.iter().zip(tys.iter()).map(
@@ -324,7 +306,7 @@ fn node_to_tokens(ident: &proc_macro2::Ident, args: &Vec<ParseExpr>, named_types
 }
 
 
-fn to_tokens_alt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, ResTy<Ident>>) -> proc_macro2::TokenStream {
+fn to_tokens_alt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
     match parse_tree {
         ParseExpr::Any => quote!(pattern::pattern_match::matchers::Alt::Any),
         ParseExpr::Alt(a, b) => {
@@ -340,11 +322,17 @@ fn to_tokens_alt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, ResTy<Iden
             quote!(pattern::pattern_match::matchers::Alt::Elmt(Box::new(#l)))
         },
         ParseExpr::Named(e, i) => {
+            let ty = named_types.get(i).unwrap();
+            let action = if let Ty::Seq = &ty.ty {
+                quote!( cx.#i.push(elmt); )
+            } else {
+                quote!( cx.#i = Some(elmt); )
+            };
             let e_tokens = to_tokens_alt(e, named_types);
             quote!(
                 pattern::pattern_match::matchers::Alt::Named(
                     Box::new(#e_tokens), 
-                    |cx, elmt| {cx.#i = Some(elmt); cx}
+                    |cx, elmt| {#action cx}
                 )
             )
         },
@@ -352,7 +340,7 @@ fn to_tokens_alt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, ResTy<Iden
     }
 }
 
-fn to_tokens_opt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, ResTy<Ident>>) -> proc_macro2::TokenStream {
+fn to_tokens_opt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
     match parse_tree {
         ParseExpr::Any => quote!(pattern::pattern_match::matchers::Opt::Any),
         ParseExpr::Alt(a, b) => {
@@ -368,11 +356,17 @@ fn to_tokens_opt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, ResTy<Iden
             quote!(pattern::pattern_match::matchers::Opt::Elmt(Box::new(#l)))
         },
         ParseExpr::Named(e, i) => {
+            let ty = named_types.get(i).unwrap();
+            let action = if let Ty::Seq = &ty.ty {
+                quote!( cx.#i.push(elmt); )
+            } else {
+                quote!( cx.#i = Some(elmt); )
+            };
             let e_tokens = to_tokens_opt(e, named_types);
             quote!(
                 pattern::pattern_match::matchers::Opt::Named(
                     Box::new(#e_tokens), 
-                    |cx, elmt| {cx.#i = Some(elmt); cx}
+                    |cx, elmt| {#action cx}
                 )
             )
         },
@@ -387,7 +381,7 @@ fn to_tokens_opt(parse_tree: &ParseExpr, named_types: &HashMap<Ident, ResTy<Iden
     }
 }
 
-fn to_tokens_seq(parse_tree: &ParseExpr, named_types: &HashMap<Ident, ResTy<Ident>>) -> proc_macro2::TokenStream {
+fn to_tokens_seq(parse_tree: &ParseExpr, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
     match parse_tree {
         ParseExpr::Any => quote!(pattern::pattern_match::matchers::Seq::Any),
         ParseExpr::Alt(a, b) => {
@@ -404,7 +398,7 @@ fn to_tokens_seq(parse_tree: &ParseExpr, named_types: &HashMap<Ident, ResTy<Iden
         },
         ParseExpr::Named(e, i) => {
             let ty = named_types.get(i).unwrap();
-            let action = if let ResTy::Seq(_s) = ty {
+            let action = if let Ty::Seq = &ty.ty {
                 quote!( cx.#i.push(elmt); )
             } else {
                 quote!( cx.#i = Some(elmt); )
