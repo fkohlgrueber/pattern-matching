@@ -47,14 +47,17 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     let named_subpattern_types = get_named_subpattern_types(&node, &ty);
 
 
+    // generate the actual pattern structure
     let tokens = to_tokens(&node, &repeat_ty, &named_subpattern_types);
 
+    // generate result structs (and their impls)
     let result_structs = gen_result_structs(&struct_tmp_name, &struct_name, &named_subpattern_types);
 
     quote!(
-
+        // result structs
         #result_structs
         
+        // matching function
         fn #name <'o, A, P> (node: &'o P) -> Option<#struct_name<'o, A>> 
         where 
             A: pattern::pattern_match::pattern_tree::MatchAssociations<'o, Expr=P>,
@@ -68,6 +71,7 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         {
             use pattern::pattern_match::IsMatch;
 
+            // initialize the pattern
             let pattern: pattern::pattern_match::matchers::#repeat_ty<
                 '_, 
                 '_, 
@@ -81,10 +85,14 @@ pub fn pattern(item: TokenStream) -> TokenStream {
                 A::Expr
             > = #tokens;
 
+            // initialize the result struct
             let mut cx = #struct_tmp_name::new();
 
+            // match input node against pattern
             let (r, cx_out) = pattern.is_match(&mut cx, node);
+            
             if r {
+                // convert cx to final struct and return
                 Some(cx.into())
             } else {
                 None
