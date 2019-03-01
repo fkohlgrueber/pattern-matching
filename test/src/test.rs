@@ -133,7 +133,6 @@ pattern!(
 );
 
 #[test]
-#[ignore]
 fn test_nonmatch_subpattern() {
     // Make sure the result contains only named submatch values for parts of 
     // the pattern that actually matched
@@ -158,7 +157,6 @@ pattern!(
 );
 
 #[test]
-#[ignore]
 fn test_nonmatch_subpattern_node() {
     // Make sure the result contains only named submatch values for parts of 
     // the pattern that actually matched
@@ -171,7 +169,31 @@ fn test_nonmatch_subpattern_node() {
         Box::new(None)
     );
 
-    let res = PAT_NONMATCH_SUBPATTERN(&ast_node);
+    let res = PAT_NONMATCH_SUBPATTERN_NODE(&ast_node);
+    assert_eq!(
+        res.unwrap().var,
+        None
+    );
+}
+
+pattern!(
+    PAT_NONMATCH_SUBPATTERN_REPEAT: Expr = 
+        Array( Lit(Bool(true)#var){2} ) |
+        _
+);
+
+#[test]
+fn test_nonmatch_subpattern_repeat() {
+    // Make sure the result contains only named submatch values for parts of 
+    // the pattern that actually matched
+    use pattern::pattern_match::dummy_ast_match::variants::*;
+    
+    let ast_node = Array(vec!(
+        Lit(Bool(true)),
+        Lit(Bool(false))
+    ));
+
+    let res = PAT_NONMATCH_SUBPATTERN_REPEAT(&ast_node);
     assert_eq!(
         res.unwrap().var,
         None
