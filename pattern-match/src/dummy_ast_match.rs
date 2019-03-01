@@ -26,7 +26,7 @@ pub enum DummyStmt {
 }
 
 #[derive(Debug, PartialEq)]
-pub struct DummyBlock(Vec<DummyStmt>);
+pub struct DummyBlock(pub Vec<DummyStmt>);
 
 // Dummy Ast MatchAssociations
 

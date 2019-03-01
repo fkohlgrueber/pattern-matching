@@ -125,3 +125,55 @@ fn test_nested() {
         ))
     );
 }
+
+pattern!(
+    PAT_NONMATCH_SUBPATTERN: Expr = 
+        Array( Lit(Bool(_#var)) Lit(Bool(true)) ) |
+        Array( Lit(Bool(false))* )
+);
+
+#[test]
+#[ignore]
+fn test_nonmatch_subpattern() {
+    // Make sure the result contains only named submatch values for parts of 
+    // the pattern that actually matched
+    use pattern::pattern_match::dummy_ast_match::variants::*;
+    
+    let ast_node = Array(vec!(
+        Lit(Bool(false)),
+        Lit(Bool(false))
+    ));
+
+    let res = PAT_NONMATCH_SUBPATTERN(&ast_node);
+    assert_eq!(
+        res.unwrap().var,
+        None
+    );
+}
+
+pattern!(
+    PAT_NONMATCH_SUBPATTERN_NODE: Expr = 
+        If(Lit(Bool(_#var)), Block(Expr(Lit(_))), _?) |
+        If(_, _, ())
+);
+
+#[test]
+#[ignore]
+fn test_nonmatch_subpattern_node() {
+    // Make sure the result contains only named submatch values for parts of 
+    // the pattern that actually matched
+    use pattern::pattern_match::dummy_ast_match::variants::*;
+    use pattern::pattern_match::dummy_ast_match::*;
+    
+    let ast_node = If(
+        Box::new(Lit(Bool(false))),
+        DummyBlock(vec!(Expr(Array(vec!())))),
+        Box::new(None)
+    );
+
+    let res = PAT_NONMATCH_SUBPATTERN(&ast_node);
+    assert_eq!(
+        res.unwrap().var,
+        None
+    );
+}
