@@ -40,7 +40,7 @@ fn gen_tmp_result_struct(name: &Ident, named_subpattern_types: &HashMap<Ident, P
     ).collect::<Vec<_>>();
 
     // generate struct definition
-    let struct_definition = gen_result_struct(name, &struct_def_items);
+    let struct_definition = gen_result_struct(name, &struct_def_items, false);
     
     quote!(
         #struct_definition
@@ -64,9 +64,9 @@ fn gen_final_result_struct(tmp_name: &Ident, final_name: &Ident, named_subpatter
         |(k, v)| {
             let e = &v.inner_ty; 
             match &v.ty {
-                Ty::Alt => quote!( #k: &'o A::#e ),
-                Ty::Opt => quote!( #k: Option<&'o A::#e> ),
-                Ty::Seq => quote!( #k: Vec<&'o A::#e> ),
+                Ty::Alt => quote!( pub #k: &'o A::#e ),
+                Ty::Opt => quote!( pub #k: Option<&'o A::#e> ),
+                Ty::Seq => quote!( pub #k: Vec<&'o A::#e> ),
             }
         }
     ).collect::<Vec<_>>();
@@ -83,7 +83,7 @@ fn gen_final_result_struct(tmp_name: &Ident, final_name: &Ident, named_subpatter
     ).collect::<Vec<_>>();
 
     // generate struct definition
-    let struct_definition = gen_result_struct(final_name, &struct_def_items);
+    let struct_definition = gen_result_struct(final_name, &struct_def_items, true);
     
     quote!(
         #struct_definition
@@ -101,10 +101,11 @@ fn gen_final_result_struct(tmp_name: &Ident, final_name: &Ident, named_subpatter
     )
 }
 
-fn gen_result_struct(name: &Ident, items: &Vec<proc_macro2::TokenStream>) -> proc_macro2::TokenStream {
+fn gen_result_struct(name: &Ident, items: &Vec<proc_macro2::TokenStream>, is_pub: bool) -> proc_macro2::TokenStream {
+    let is_pub_tok = if is_pub { quote!( pub ) } else {quote!() };
     quote!(
         #[derive(Debug)]
-        pub struct #name<'o, A>
+        #is_pub_tok struct #name<'o, A>
         where A: pattern::pattern_match::pattern_tree::MatchAssociations<'o> {
             #(#items),*
         }
