@@ -46,24 +46,22 @@ where T: PatternTreeNode + IsMatch<'cx, 'o, Cx, U> {
             Alt::Elmt(e) => e.is_match(cx, other),
             Alt::Named(e, f) => {
                 let (r, mut cx) = e.is_match(cx, other);
-                if r {
-                    cx = f(cx, other)
+                if r { 
+                    cx = f(cx, other);
                 }
                 (r, cx)
             },
             Alt::Alt(i, j) => {
                 let (r_i, cx) = i.is_match(cx, other);
+                // early return if first alternative matched
+                if r_i { 
+                    return (r_i, cx); 
+                }
                 let (r_j, cx) = j.is_match(cx, other);
-                (r_i || r_j, cx)
+                (r_j, cx)
             }
         }
     }
-}
-
-pub trait Reduce {
-    type Target;
-
-    fn reduce(&self) -> &Self::Target;
 }
 
 impl<'cx, 'o, T, U, V, Cx> IsMatch<'cx, 'o, Cx, [V]> for Seq<'cx, 'o, T, Cx, U>
@@ -76,24 +74,26 @@ where
         match self {
             Seq::Any => (other.len() == 1, cx),
             Seq::Elmt(e) => {
-                if other.len() != 1 {
-                    return (false, cx);
-                }
+                if other.len() != 1 { return (false, cx); }
                 e.is_match(cx, &other[0].reduce())
             },
             Seq::Named(e, f) => {
                 let (r, mut cx) = e.is_match(cx, other);
                 if r {
                     for o in other {
-                        cx = f(cx, o.reduce())
+                        cx = f(cx, o.reduce());
                     }
                 }
                 (r, cx)
             },
             Seq::Alt(i, j) => {
                 let (r_i, cx) = i.is_match(cx, other);
+                // early return if first alternative matched
+                if r_i { 
+                    return (r_i, cx); 
+                }
                 let (r_j, cx) = j.is_match(cx, other);
-                (r_i || r_j, cx)
+                (r_j, cx)
             },
             Seq::Empty => (other.is_empty(), cx),
             Seq::Repeat(e, r) => {
@@ -106,6 +106,7 @@ where
 
                 for i in r.start..r.end.unwrap_or(other.len()+1) {
                     
+                    // TODO: this can be done more efficiently
                     let iterators = repeat_n(e_range.clone(), i)
                         .multi_cartesian_product()
                         .filter(|x| x.iter().sum::<usize>() == other.len());
@@ -113,7 +114,6 @@ where
                     'outer: for vals in iterators {
                         let mut skip = 0;
                         for v in vals.iter() {
-                            
                             let (r_e, cx_tmp) = e.is_match(cx, &other[skip..skip+v]);
                             cx = cx_tmp;
                             if !r_e {
@@ -137,10 +137,12 @@ where
                     let (l, r) = other.split_at(i);
                     let (r_a, cx_tmp) = a.is_match(cx, l);
                     cx = cx_tmp;
-                    let (r_b, cx_tmp) = b.is_match(cx, r);
-                    cx = cx_tmp;
-                    if r_a && r_b {
-                        return (true, cx);
+                    if r_a {
+                        let (r_b, cx_tmp) = b.is_match(cx, r);
+                        cx = cx_tmp;
+                        if r_b {
+                            return (true, cx);
+                        }
                     }
                 }
                 (false, cx)
@@ -183,12 +185,22 @@ where
                 }
                 (r, cx)
             },
-            Opt::Alt(a, b) => {
-                let (r_a, cx) = a.is_match(cx, other);
-                let (r_b, cx) = b.is_match(cx, other);
-                (r_a || r_b, cx)
+            Opt::Alt(i, j) => {
+                let (r_i, cx) = i.is_match(cx, other);
+                // early return if first alternative matched
+                if r_i { 
+                    return (r_i, cx); 
+                }
+                let (r_j, cx) = j.is_match(cx, other);
+                (r_j, cx)
             },
             Opt::None => (other.is_none(), cx),
         }
     }
+}
+
+pub trait Reduce {
+    type Target;
+
+    fn reduce(&self) -> &Self::Target;
 }

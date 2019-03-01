@@ -107,7 +107,7 @@ pub fn pattern_tree(input: TokenStream) -> TokenStream {
     }
     
     // generate type information struct
-    let x = pattern_tree_def.iter().flat_map(|x| &x.variants).map(
+    let items = pattern_tree_def.iter().flat_map(|x| &x.variants).map(
         |x| {
             let name = &x.name;
             let args = x.args.iter().map(|x| &x.ty).collect::<Vec<_>>();
@@ -119,7 +119,7 @@ pub fn pattern_tree(input: TokenStream) -> TokenStream {
         pattern_tree::lazy_static!{
             pub static ref TYPES: std::collections::HashMap<&'static str, Vec<(&'static str, pattern_tree::Ty)>> = {
                 let mut p = std::collections::HashMap::new();
-                #(#x)*
+                #(#items)*
                 p
             };
         }
