@@ -1,6 +1,6 @@
 
 use crate::pattern_tree::*;
-use crate::{IsMatch, Reduce};
+use crate::{IsMatch, Reduce, ReduceSelf};
 use syntax::ast;
 
 #[derive(Debug)]
@@ -89,13 +89,7 @@ impl<'cx, 'o, Cx> IsMatch<'cx, 'o, Cx, ast::Lit> for Lit<'cx, 'o, Cx, Ast> {
     }
 }
 
-impl Reduce for syntax::ast::Stmt {
-    type Target = syntax::ast::Stmt;
-
-    fn reduce(&self) -> &Self::Target {
-        self
-    }
-}
+impl ReduceSelf for syntax::ast::Stmt {}
 
 impl<T> Reduce for syntax::ptr::P<T> {
     type Target = T;

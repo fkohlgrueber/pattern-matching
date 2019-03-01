@@ -1,4 +1,4 @@
-use crate::{IsMatch, Reduce};
+use crate::{IsMatch, ReduceSelf};
 use crate::pattern_tree::*;
 
 // Dummy Ast Nodes
@@ -101,18 +101,5 @@ impl<'cx, 'o, Cx> IsMatch<'cx, 'o, Cx, DummyBlock> for BlockType<'cx, 'o, Cx, Du
     }
 }
 
-impl Reduce for DummyExpr {
-    type Target = DummyExpr;
-
-    fn reduce(&self) -> &Self::Target {
-        self
-    }
-}
-
-impl Reduce for DummyStmt {
-    type Target = DummyStmt;
-
-    fn reduce(&self) -> &Self::Target {
-        self
-    }
-}
+impl ReduceSelf for DummyExpr {}
+impl ReduceSelf for DummyStmt {}

@@ -198,3 +198,14 @@ pub trait Reduce {
 
     fn reduce(&self) -> &Self::Target;
 }
+
+pub trait ReduceSelf {}
+
+impl<T> Reduce for T 
+where T: ReduceSelf {
+    type Target = T;
+
+    fn reduce(&self) -> &Self::Target {
+        self
+    }
+}
