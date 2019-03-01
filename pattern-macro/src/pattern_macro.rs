@@ -44,7 +44,10 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     let struct_tmp_name = proc_macro2::Ident::new(&(name.to_string() + "TmpStruct"), proc_macro2::Span::call_site());
 
     // for each named subpattern, get its type
-    let named_subpattern_types = get_named_subpattern_types(&node, &ty);
+    let named_subpattern_types = match get_named_subpattern_types(&node, &ty) {
+        Ok(t) => t,
+        Err(ts) => return ts.to_compile_error().into(),
+    };
 
 
     // generate the actual pattern structure
