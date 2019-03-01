@@ -64,7 +64,7 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         fn #name <'o, A, P> (node: &'o P) -> Option<#struct_name<'o, A>> 
         where 
             A: pattern::pattern_match::pattern_tree::MatchAssociations<'o, Expr=P>,
-            P: std::fmt::Debug,
+            P: std::fmt::Debug + std::clone::Clone,
             for<'cx> pattern::pattern_match::pattern_tree::Expr<'cx, 'o, #struct_tmp_name<'o, A>, A>: pattern::pattern_match::IsMatch<
                 'cx, 
                 'o, 

@@ -18,21 +18,21 @@ impl IsMatchEquality for char {}
 impl IsMatchEquality for bool {}
 
 // Main trait for matching
-pub trait IsMatch<'cx, 'o, Cx, O: ?Sized> {
+pub trait IsMatch<'cx, 'o, Cx: Clone, O: ?Sized> {
     fn is_match(&self, cx: &'cx mut Cx, other: &'o O) -> (bool, &'cx mut Cx);
 }
 
 // Trait for types that can be matched by their equality
 pub trait IsMatchEquality: PartialEq {}
 
-impl<'cx, 'o, Cx, T> IsMatch<'cx, 'o, Cx, T> for T 
+impl<'cx, 'o, Cx: Clone, T> IsMatch<'cx, 'o, Cx, T> for T 
 where T: IsMatchEquality {
     fn is_match(&self, cx: &'cx mut Cx, other: &T) -> (bool, &'cx mut Cx) {
         (self == other, cx)
     }
 }
 
-impl<'cx, 'o, T, U, Cx> IsMatch<'cx, 'o, Cx, U> for Alt<'cx, 'o, T, Cx, U>
+impl<'cx, 'o, T, U, Cx: Clone> IsMatch<'cx, 'o, Cx, U> for Alt<'cx, 'o, T, Cx, U>
 where T: PatternTreeNode + IsMatch<'cx, 'o, Cx, U> {
     fn is_match(&self, cx: &'cx mut Cx, other: &'o U) -> (bool, &'cx mut Cx) {
         match self {
@@ -57,7 +57,7 @@ where T: PatternTreeNode + IsMatch<'cx, 'o, Cx, U> {
     }
 }
 
-impl<'cx, 'o, T, U, V, Cx> IsMatch<'cx, 'o, Cx, [V]> for Seq<'cx, 'o, T, Cx, U>
+impl<'cx, 'o, T, U, V, Cx: Clone> IsMatch<'cx, 'o, Cx, [V]> for Seq<'cx, 'o, T, Cx, U>
 where 
     T: PatternTreeNode + IsMatch<'cx, 'o, Cx, U>,
     V: Reduce<Target=U>
@@ -144,7 +144,7 @@ where
     }
 }
 
-impl<'cx, 'o, T, U, V, Cx> IsMatch<'cx, 'o, Cx, Vec<V>> for Seq<'cx, 'o, T, Cx, U>
+impl<'cx, 'o, T, U, V, Cx: Clone> IsMatch<'cx, 'o, Cx, Vec<V>> for Seq<'cx, 'o, T, Cx, U>
 where 
     T: PatternTreeNode + IsMatch<'cx, 'o, Cx, U>,
     V: Reduce<Target=U>
@@ -155,7 +155,7 @@ where
 }
 
 
-impl<'cx, 'o, T, U, V, Cx> IsMatch<'cx, 'o, Cx, Option<V>> for Opt<'cx, 'o, T, Cx, U>
+impl<'cx, 'o, T, U, V, Cx: Clone> IsMatch<'cx, 'o, Cx, Option<V>> for Opt<'cx, 'o, T, Cx, U>
 where 
     T: PatternTreeNode + IsMatch<'cx, 'o, Cx, U>,
     V: Reduce<Target=U>

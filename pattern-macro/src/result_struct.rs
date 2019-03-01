@@ -104,7 +104,7 @@ fn gen_final_result_struct(tmp_name: &Ident, final_name: &Ident, named_subpatter
 fn gen_result_struct(name: &Ident, items: &Vec<proc_macro2::TokenStream>, is_pub: bool) -> proc_macro2::TokenStream {
     let is_pub_tok = if is_pub { quote!( pub ) } else {quote!() };
     quote!(
-        #[derive(Debug)]
+        #[derive(Debug, Clone)]
         #is_pub_tok struct #name<'o, A>
         where A: pattern::pattern_match::pattern_tree::MatchAssociations<'o> {
             #(#items),*

@@ -5,14 +5,14 @@ use crate::matchers::*;
 use std::fmt::Debug;
 
 pub trait MatchAssociations<'o> 
-where Self: Sized {
-    type Expr: 'o + Debug;
-    type Lit: 'o + Debug;
-    type Bool: 'o + Debug;
-    type Char: 'o + Debug;
-    type Int: 'o + Debug;
-    type Stmt: 'o + Debug;
-    type BlockType: 'o + Debug;
+where Self: Sized + Clone {
+    type Expr: 'o + Debug + Clone;
+    type Lit: 'o + Debug + Clone;
+    type Bool: 'o + Debug + Clone;
+    type Char: 'o + Debug + Clone;
+    type Int: 'o + Debug + Clone;
+    type Stmt: 'o + Debug + Clone;
+    type BlockType: 'o + Debug + Clone;
 }
 
 // Trait that has to be implemented on all types that can be used in a pattern tree
