@@ -2,7 +2,7 @@ use syn::{Ident, Result};
 use syn::parse::{Parse, ParseStream};
 use quote::{quote, ToTokens};
 
-#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord, Copy)]
 pub enum Ty {
     Alt,
     Opt,

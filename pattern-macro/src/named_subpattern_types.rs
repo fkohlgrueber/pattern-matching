@@ -4,15 +4,30 @@ use crate::parse::RepeatKind;
 use std::collections::HashMap;
 use syn::Ident;
 use crate::PatTy;
-use pattern_match::pattern_tree::TYPES;
+use pattern_match::pattern_tree;
 use std::cmp::max;
 use syn::Error;
 
+/// Inserts all elements from `hm` into `res` and return error if there are duplicate elements.
+fn try_insert(hm: HashMap<Ident, PatTy>, res: &mut HashMap<Ident, PatTy>) -> Result<(), syn::Error>{
+    for (k, v) in hm {
+        if res.contains_key(&k) {
+            return Err(Error::new_spanned(
+                k, "Multiple occurrences of the same variable aren't allowed!"
+            ))
+        }
+        res.insert(k, v).is_some();
+    }
+
+    Ok(())
+}
 
 pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Result<HashMap<Ident, PatTy>, syn::Error> {
     match input {
         ParseTree::Node(id, args) => {
-            let tys = TYPES.get(id.to_string().as_str()).ok_or(Error::new_spanned(id, "Unknown Node!"))?;
+            let tys = pattern_tree::TYPES
+                .get(id.to_string().as_str())
+                .ok_or(Error::new_spanned(id, "Unknown Node!"))?;
             if tys.len() != args.len() { 
                 return Err(Error::new_spanned(
                     id, 
@@ -26,12 +41,7 @@ pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Resul
 
             for (e, (inner_ty, _ty)) in args.iter().zip(tys.iter()) {
                 let hm = get_named_subpattern_types(e, &Ident::new(inner_ty, proc_macro2::Span::call_site()))?;
-                for (k, v) in hm {
-                    if res.contains_key(&k) {
-                        panic!("Multiple occurrences of the same variable aren't allowed!")
-                    }
-                    res.insert(k, v);
-                }
+                try_insert(hm, &mut res)?;
             }
 
             Ok(res)
@@ -47,10 +57,7 @@ pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Resul
                 if !b_hm.contains_key(&i) {
                     let res_ty = PatTy {
                         inner_ty: i_ty.inner_ty.clone(),
-                        ty: match &i_ty.ty {
-                            Ty::Alt => Ty::Opt,
-                            t => t.clone()
-                        }
+                        ty: max(i_ty.ty, Ty::Opt)
                     };
                     res.insert((*i).clone(), res_ty);
                 }
@@ -59,10 +66,7 @@ pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Resul
                 if !a_hm.contains_key(&i) {
                     let res_ty = PatTy {
                         inner_ty: i_ty.inner_ty.clone(),
-                        ty: match &i_ty.ty {
-                            Ty::Alt => Ty::Opt,
-                            t => t.clone()
-                        }
+                        ty: max(i_ty.ty, Ty::Opt)
                     };
                     res.insert((*i).clone(), res_ty);
                 }
@@ -72,20 +76,14 @@ pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Resul
             for (i, i_ty) in &a_hm {
                 if let Some(j_ty) = b_hm.get(&i) {
                     if i_ty.inner_ty != j_ty.inner_ty {
-                        panic!("Multiple occurances of the same #name need to have the same type.")
+                        return Err(Error::new_spanned(
+                            i, format!("Multiple occurances of #{} need to have the same type.", i)
+                        ));
                     }
                     
                     let res_ty = PatTy {
                         inner_ty: i_ty.inner_ty.clone(),
-                        ty: match (&i_ty.ty, &j_ty.ty) {
-                            // if one is Seq => Seq
-                            // if one is Opt => Opt
-                            // else Alt
-                            (Ty::Alt, Ty::Alt) => Ty::Alt,
-                            (Ty::Seq, _) => Ty::Seq,
-                            (_, Ty::Seq) => Ty::Seq,
-                            _ => Ty::Opt
-                        }
+                        ty: max(i_ty.ty, j_ty.ty)
                     };
                     res.insert((*i).clone(), res_ty);
                 }
@@ -103,31 +101,20 @@ pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Resul
             let repeat_type = get_repeat_type(e);
             
             h.insert(id.clone(), PatTy { ty: repeat_type, inner_ty: inner_ty.clone()});
+
             Ok(h)
         },
         ParseTree::Lit(_l) => Ok(HashMap::new()),
         ParseTree::Any => Ok(HashMap::new()),
-        
         ParseTree::Empty => Ok(HashMap::new()),
         ParseTree::Seq(a, b) => {
-            let a_hm = get_named_subpattern_types(a, ty)?;
+            let mut a_hm = get_named_subpattern_types(a, ty)?;
             let b_hm = get_named_subpattern_types(b, ty)?;
-            let mut res = HashMap::new();
-
-            for (k, v) in a_hm {
-                if res.contains_key(&k) {
-                    panic!("Multiple occurrences of the same variable aren't allowed!")
-                }
-                res.insert(k, v);
-            }
-            for (k, v) in b_hm {
-                if res.contains_key(&k) {
-                    panic!("Multiple occurrences of the same variable aren't allowed!")
-                }
-                res.insert(k, v);
-            }
-
-            Ok(res)
+            
+            // add elements from b_hm to a_hm, error for duplicates
+            try_insert(b_hm, &mut a_hm)?;
+            
+            Ok(a_hm)
         },
         ParseTree::Repeat(e, _r) => get_named_subpattern_types(e, ty),
     }
