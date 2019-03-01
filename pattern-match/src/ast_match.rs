@@ -1,6 +1,6 @@
 
 use crate::pattern_tree::*;
-use crate::{IsMatch, Reduce, PatternTreeNode};
+use crate::{IsMatch, Reduce};
 use syntax::ast;
 
 #[derive(Debug)]
@@ -88,12 +88,6 @@ impl<'cx, 'o, Cx> IsMatch<'cx, 'o, Cx, ast::Lit> for Lit<'cx, 'o, Cx, Ast> {
         self.is_match(cx, &other.node)
     }
 }
-
-impl<'cx, 'o, Cx, A> PatternTreeNode for Lit<'cx, 'o, Cx, A> where A: MatchAssociations<'o> {}
-impl<'cx, 'o, Cx, A> PatternTreeNode for Expr<'cx, 'o, Cx, A> where A: MatchAssociations<'o> {}
-impl<'cx, 'o, Cx, A> PatternTreeNode for Stmt<'cx, 'o, Cx, A> where A: MatchAssociations<'o> {}
-impl<'cx, 'o, Cx, A> PatternTreeNode for BlockType<'cx, 'o, Cx, A> where A: MatchAssociations<'o> {}
-
 
 impl Reduce for syntax::ast::Stmt {
     type Target = syntax::ast::Stmt;

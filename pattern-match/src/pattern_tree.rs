@@ -15,6 +15,19 @@ where Self: Sized {
     type BlockType: 'o + Debug;
 }
 
+// Trait that has to be implemented on all types that can be used in a pattern tree
+pub trait PatternTreeNode {}
+
+impl PatternTreeNode for char {}
+impl PatternTreeNode for u128 {}
+impl PatternTreeNode for bool {}
+
+impl<'cx, 'o, Cx, A> PatternTreeNode for Lit<'cx, 'o, Cx, A> where A: MatchAssociations<'o> {}
+impl<'cx, 'o, Cx, A> PatternTreeNode for Expr<'cx, 'o, Cx, A> where A: MatchAssociations<'o> {}
+impl<'cx, 'o, Cx, A> PatternTreeNode for Stmt<'cx, 'o, Cx, A> where A: MatchAssociations<'o> {}
+impl<'cx, 'o, Cx, A> PatternTreeNode for BlockType<'cx, 'o, Cx, A> where A: MatchAssociations<'o> {}
+
+
 /*
 Expr = Lit(Lit)
      | Array(Expr*)
