@@ -148,12 +148,10 @@ fn unary_expr(input: ParseStream) -> Result<ParseTree> {
 }
 
 fn trailer_expr(input: ParseStream) -> Result<ParseTree> {
-    /*if input.peek(token::Group) {
-        return input.call(expr_group).map(ParseTree::Group);
-    }*/
 
     let mut e = atom_expr(input)?;
     
+    // parse repeat syntax
     if input.peek(Token![*]) {
         input.parse::<Token![*]>()?;
         e = ParseTree::Repeat(Box::new(e), RepeatKind::Any);
@@ -180,19 +178,19 @@ fn trailer_expr(input: ParseStream) -> Result<ParseTree> {
         };
     }
 
+    // parse named
     if input.peek(Token![#]) {
         input.parse::<Token![#]>()?;
         e = ParseTree::Named(Box::new(e), input.parse()?);
     }
-    //let mut e = trailer_helper(input, atom)?;
-
-    //Ok(e)
+    
     Ok(e)
 }
 
 fn atom_expr(input: ParseStream) -> Result<ParseTree> {
     if input.peek(Token![_]){
-        input.parse::<Token![_]>().map(|_| ParseTree::Any)
+        input.parse::<Token![_]>()?;
+        Ok(ParseTree::Any)
     } else if input.peek(Ident) && input.peek2(token::Paren) {
         let id = input.parse::<Ident>()?;
         let content;
@@ -203,21 +201,18 @@ fn atom_expr(input: ParseStream) -> Result<ParseTree> {
             id,
             vals.into_iter().collect()
         ))
-    /*} else if input.peek(Ident) {
-        input.parse().map(ParseTree::Ident)*/
     } else if input.peek(token::Paren) {
         let content;
         parenthesized!(content in input);
         if content.is_empty() {
             return Ok(ParseTree::Empty);
         }
-        let first: ParseTree = content.parse()?;
-        Ok(first)
+        content.parse()
+    } else if input.peek(syn::Lit) {
+        let e = input.parse()?;
+        Ok(ParseTree::Lit(e))
     } else {
-        match input.parse::<syn::Lit>() {
-            Ok(e) => Ok(ParseTree::Lit(e)),
-            Err(_) => Err(input.error("unsupported expression; enable syn's features=[\"full\"]"))
-        }
+        Err(input.error("Expected _, (), <node>(...) or a literal"))
     }
 }
 
