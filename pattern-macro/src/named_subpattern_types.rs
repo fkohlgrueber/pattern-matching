@@ -22,6 +22,7 @@ fn try_insert(hm: HashMap<Ident, PatTy>, res: &mut HashMap<Ident, PatTy>) -> Res
     Ok(())
 }
 
+/// Traverses a ParseTree and builds a Hashmap containing the types of all named subpatterns.
 pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Result<HashMap<Ident, PatTy>, syn::Error> {
     match input {
         ParseTree::Node(id, args) => {
@@ -51,27 +52,6 @@ pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Resul
             let b_hm = get_named_subpattern_types(b, ty)?;
             let mut res = HashMap::new();
 
-            // add unique elements
-            // if an element is only present on one branch, it's type needs to be Option<_>
-            for (i, i_ty) in &a_hm {
-                if !b_hm.contains_key(&i) {
-                    let res_ty = PatTy {
-                        inner_ty: i_ty.inner_ty.clone(),
-                        ty: max(i_ty.ty, Ty::Opt)
-                    };
-                    res.insert((*i).clone(), res_ty);
-                }
-            }
-            for (i, i_ty) in &b_hm {
-                if !a_hm.contains_key(&i) {
-                    let res_ty = PatTy {
-                        inner_ty: i_ty.inner_ty.clone(),
-                        ty: max(i_ty.ty, Ty::Opt)
-                    };
-                    res.insert((*i).clone(), res_ty);
-                }
-            }
-            
             // elmts that are in both hashmaps
             for (i, i_ty) in &a_hm {
                 if let Some(j_ty) = b_hm.get(&i) {
@@ -87,6 +67,15 @@ pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Resul
                     };
                     res.insert((*i).clone(), res_ty);
                 }
+            }
+
+            // add unique elements
+            // if an element is only present on one branch, it's type needs to be Option<_> or Vec<_>
+            for (i, i_ty) in a_hm.into_iter().chain(b_hm.into_iter()){
+                res.entry(i).or_insert(PatTy {
+                    inner_ty: i_ty.inner_ty.clone(),
+                    ty: max(i_ty.ty, Ty::Opt)
+                });
             }
 
             Ok(res)
