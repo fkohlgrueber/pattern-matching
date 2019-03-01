@@ -89,6 +89,9 @@ where
             },
             Seq::Empty => (other.is_empty(), cx),
             Seq::Repeat(e, r) => {
+                // TODO: cx / cx_orig are cloned more often than necessary. 
+                //       Fix this (also applies to Seq::Seq)
+                let cx_orig = cx.clone();
                 let e_range = e.num_elmts_range();
                 let e_range = e_range.start..e_range.end.unwrap_or(other.len()+1);
 
@@ -104,6 +107,7 @@ where
                         .filter(|x| x.iter().sum::<usize>() == other.len());
 
                     'outer: for vals in iterators {
+                        *cx = cx_orig.clone();
                         let mut skip = 0;
                         for v in vals.iter() {
                             let (r_e, cx_tmp) = e.is_match(cx, &other[skip..skip+v]);
@@ -116,13 +120,14 @@ where
                         return (true, cx);
                     }
                 }
-
+                *cx = cx_orig;
                 (false, cx)
             },
             Seq::Seq(a, b) => {
-                let mut cx = cx;
+                let cx_orig = cx.clone();
                 let range = a.num_elmts_range();
                 for i in range.start..range.end.unwrap_or(other.len()+1) {
+                    *cx = cx_orig.clone();
                     if i > other.len() {
                         break;
                     }
@@ -137,6 +142,7 @@ where
                         }
                     }
                 }
+                *cx = cx_orig;
                 (false, cx)
             },
             
