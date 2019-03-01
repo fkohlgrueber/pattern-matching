@@ -51,8 +51,7 @@ where T: PatternTreeNode + IsMatch<'cx, 'o, Cx, U> {
                 if r_i { 
                     return (r_i, cx); 
                 }
-                let (r_j, cx) = j.is_match(cx, other);
-                (r_j, cx)
+                j.is_match(cx, other)
             }
         }
     }
@@ -86,8 +85,7 @@ where
                 if r_i { 
                     return (r_i, cx); 
                 }
-                let (r_j, cx) = j.is_match(cx, other);
-                (r_j, cx)
+                j.is_match(cx, other)
             },
             Seq::Empty => (other.is_empty(), cx),
             Seq::Repeat(e, r) => {
@@ -185,8 +183,7 @@ where
                 if r_i { 
                     return (r_i, cx); 
                 }
-                let (r_j, cx) = j.is_match(cx, other);
-                (r_j, cx)
+                j.is_match(cx, other)
             },
             Opt::None => (other.is_none(), cx),
         }
