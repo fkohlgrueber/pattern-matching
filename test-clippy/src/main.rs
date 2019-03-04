@@ -82,30 +82,24 @@ impl EarlyLintPass for CollapsibleIf {
             return;
         }
 
-        match PAT_IF_WITHOUT_ELSE(expr) {
-            Some(res) => {
-                if !block_starts_with_comment(cx, res.then) && expr.span.ctxt() == res.inner.span.ctxt() {
-                    cx.span_lint(
-                        SIMPLE_PATTERN,
-                        expr.span,
-                        "this if statement can be collapsed",
-                    );
-                }
-            },
-            _ => ()
+        if let Some(res) = PAT_IF_WITHOUT_ELSE(expr) {
+            if !block_starts_with_comment(cx, res.then) && expr.span.ctxt() == res.inner.span.ctxt() {
+                cx.span_lint(
+                    SIMPLE_PATTERN,
+                    expr.span,
+                    "this if statement can be collapsed",
+                );
+            }
         }
-        match PAT_IF_2(expr) {
-            Some(res) => {
-                if !block_starts_with_comment(cx, res.block_inner) && !in_macro(res.else_.span){
-                    cx.span_lint(
-                        SIMPLE_PATTERN,
-                        res.block.span,
-                        "this `else { if .. }` block can be collapsed",
-                    );
-                }
-            },
-            _ => ()
-        };
+        if let Some(res) = PAT_IF_2(expr) {
+            if !block_starts_with_comment(cx, res.block_inner) && !in_macro(res.else_.span){
+                cx.span_lint(
+                    SIMPLE_PATTERN,
+                    res.block.span,
+                    "this `else { if .. }` block can be collapsed",
+                );
+            }
+        }
     }
 }
 
