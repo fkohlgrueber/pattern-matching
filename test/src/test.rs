@@ -6,63 +6,13 @@ extern crate syntax;
 
 use pattern::pattern;
 
-pattern!{
-    PAT_IF_WITHOUT_ELSE: Expr = 
-        If(
-            _#check,
-            Block(
-                Expr( If(_#check_inner, _#content, ())#inner )
-                | Semi( If(_#check_inner, _#content, ())#inner ) 
-            )#then, 
-            ()
-        )
-}
-
-pattern!{
-    PAT_IF_2: Expr = 
-        If(
-            _, 
-            _, 
-            Block_(
-                Block(
-                    Expr((If(_, _, _?) | IfLet(_, _?))#else_) | 
-                    Semi((If(_, _, _?) | IfLet(_, _?))#else_)
-                )
-            )#block
-        ) |
-        IfLet(
-            _, 
-            Block_(
-                Block(
-                    Expr((If(_, _, _?) | IfLet(_, _?))#else_) | 
-                    Semi((If(_, _, _?) | IfLet(_, _?))#else_)
-                )
-            )#block
-        )
-}
-
 pattern!(
-    PAT_SIMPLE: Expr = 
-        Lit(Bool(false#test)) |
-        Array(
-            Lit(Char('a')) * 
-            Lit(Char('b')) {1,3} 
-            Lit(Char('c'))
-        ) |
-        If(
-            Lit(Bool(true)), 
-            Block(Expr(Lit(Int(_)))* Semi(Lit(Bool(_)))*),
-            _?
-        )
-);
-
-pattern!(
-    PAT: Expr = 
+    pat: Expr = 
         Lit(Bool(_#var)#var2)#var3
 );
 
 pattern!(
-    PAT_NESTED: Expr = 
+    pat_nested: Expr = 
         Array( Array(_*#var_inner)* )
 );
 
@@ -89,10 +39,10 @@ fn test() {
 
     let ast_node = DummyExpr::Lit(DummyLit::Bool(false));
 
-    let res = PAT(&real_ast_node);
+    let res = pat(&real_ast_node);
     dbg!(res);
 
-    let res2 = PAT(&ast_node);
+    let res2 = pat(&ast_node);
     dbg!(res2);
 }
 
@@ -114,7 +64,7 @@ fn test_nested() {
         ))
     ));
 
-    let res = PAT_NESTED(&ast_node);
+    let res = pat_nested(&ast_node);
     assert_eq!(
         res.map(|x| x.var_inner),
         Some(vec!(
@@ -127,7 +77,7 @@ fn test_nested() {
 }
 
 pattern!(
-    PAT_NONMATCH_SUBPATTERN: Expr = 
+    pat_nonmatch_subpattern: Expr = 
         Array( Lit(Bool(_#var)) Lit(Bool(true)) ) |
         Array( Lit(Bool(false))* )
 );
@@ -143,7 +93,7 @@ fn test_nonmatch_subpattern() {
         Lit(Bool(false))
     ));
 
-    let res = PAT_NONMATCH_SUBPATTERN(&ast_node);
+    let res = pat_nonmatch_subpattern(&ast_node);
     assert_eq!(
         res.unwrap().var,
         None
@@ -151,7 +101,7 @@ fn test_nonmatch_subpattern() {
 }
 
 pattern!(
-    PAT_NONMATCH_SUBPATTERN_NODE: Expr = 
+    pat_nonmatch_subpattern_node: Expr = 
         If(Lit(Bool(_#var)), Block(Expr(Lit(_))), _?) |
         If(_, _, ())
 );
@@ -169,7 +119,7 @@ fn test_nonmatch_subpattern_node() {
         Box::new(None)
     );
 
-    let res = PAT_NONMATCH_SUBPATTERN_NODE(&ast_node);
+    let res = pat_nonmatch_subpattern_node(&ast_node);
     assert_eq!(
         res.unwrap().var,
         None
@@ -177,7 +127,7 @@ fn test_nonmatch_subpattern_node() {
 }
 
 pattern!(
-    PAT_NONMATCH_SUBPATTERN_REPEAT: Expr = 
+    pat_nonmatch_subpattern_repeat: Expr = 
         Array( Lit(Bool(true)#var){2} ) |
         _
 );
@@ -193,7 +143,7 @@ fn test_nonmatch_subpattern_repeat() {
         Lit(Bool(false))
     ));
 
-    let res = PAT_NONMATCH_SUBPATTERN_REPEAT(&ast_node);
+    let res = pat_nonmatch_subpattern_repeat(&ast_node);
     assert_eq!(
         res.unwrap().var,
         None

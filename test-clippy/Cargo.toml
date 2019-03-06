@@ -8,4 +8,4 @@ edition = "2018"
 pattern = { path = "../pattern" }
 
 [dev-dependencies]
-compiletest_rs = "0.3.17"
+compiletest_rs = "0.3.19"

@@ -38,10 +38,14 @@ impl LintPass for CollapsibleIf {
     fn get_lints(&self) -> LintArray {
         lint_array!(COLLAPSIBLE_IF)
     }
+
+    fn name(&self) -> &'static str {
+        "CollapsibleIf"
+    }
 }
 
 pattern!{
-    PAT_IF_WITHOUT_ELSE: Expr = 
+    pat_if_without_else: Expr = 
         If(
             _#check,
             Block(
@@ -53,7 +57,7 @@ pattern!{
 }
 
 pattern!{
-    PAT_IF_2: Expr = 
+    pat_if_else: Expr = 
         If(
             _, 
             _, 
@@ -82,7 +86,7 @@ impl EarlyLintPass for CollapsibleIf {
             return;
         }
 
-        if let Some(res) = PAT_IF_WITHOUT_ELSE(expr) {
+        if let Some(res) = pat_if_without_else(expr) {
             if !block_starts_with_comment(cx, res.then) && expr.span.ctxt() == res.inner.span.ctxt() {
                 cx.span_lint(
                     SIMPLE_PATTERN,
@@ -91,7 +95,7 @@ impl EarlyLintPass for CollapsibleIf {
                 );
             }
         }
-        if let Some(res) = PAT_IF_2(expr) {
+        if let Some(res) = pat_if_else(expr) {
             if !block_starts_with_comment(cx, res.block_inner) && !in_macro(res.else_.span){
                 cx.span_lint(
                     SIMPLE_PATTERN,
@@ -116,10 +120,14 @@ impl LintPass for SimplePattern {
     fn get_lints(&self) -> LintArray {
         lint_array!(SIMPLE_PATTERN)
     }
+
+    fn name(&self) -> &'static str {
+        "SimplePattern"
+    }
 }
 
 pattern!(
-    PAT_SIMPLE: Expr = 
+    pat_simple: Expr = 
         Lit(Bool(false)) |
         Array(
             Lit(Char('a')) * 
@@ -139,7 +147,7 @@ pattern!(
 impl EarlyLintPass for SimplePattern {
     fn check_expr(&mut self, cx: &EarlyContext, expr: &syntax::ast::Expr) {
         
-        if PAT_SIMPLE(expr).is_some() {
+        if pat_simple(expr).is_some() {
             cx.span_lint(
                 SIMPLE_PATTERN,
                 expr.span,
@@ -157,8 +165,8 @@ pub fn main() {
         let mut compiler = driver::CompileController::basic();
         compiler.after_parse.callback = Box::new(move |state| {
             let mut ls = state.session.lint_store.borrow_mut();
-            ls.register_early_pass(None, false, box SimplePattern);
-            ls.register_early_pass(None, false, box CollapsibleIf);
+            ls.register_early_pass(None, false, false, box SimplePattern);
+            ls.register_early_pass(None, false, false, box CollapsibleIf);
         });
         rustc_driver::run_compiler(&args, Box::new(compiler), None, None)
     });
