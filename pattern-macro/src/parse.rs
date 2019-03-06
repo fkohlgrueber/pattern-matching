@@ -37,6 +37,7 @@ pub struct Pattern {
     pub node: ParseTree,
 }
 
+#[allow(clippy::module_name_repetitions)]
 #[derive(PartialEq, Debug)]
 pub enum ParseTree {
     Node(Ident, Vec<ParseTree>),
@@ -120,7 +121,7 @@ impl Parse for Pattern {
         let node = input.parse()?;
 
         Ok(
-            Pattern {
+            Self {
                 name,
                 ty,
                 repeat_ty,

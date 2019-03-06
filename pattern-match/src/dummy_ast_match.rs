@@ -92,7 +92,7 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyExpr> for Expr<'cx, 'o, Cx, D
 impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyStmt> for Stmt<'cx, 'o, Cx, DummyAst> {
     fn is_match(&self, cx: &'cx mut Cx, other: &'o DummyStmt) -> (bool, &'cx mut Cx) {
         match (self, other) {
-            (Stmt::Expr(i), DummyStmt::Expr(j)) => i.is_match(cx, j),
+            (Stmt::Expr(i), DummyStmt::Expr(j)) |
             (Stmt::Semi(i), DummyStmt::Semi(j)) => i.is_match(cx, j),
             _ => (false, cx),
         }

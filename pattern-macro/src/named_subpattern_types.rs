@@ -22,13 +22,13 @@ fn try_insert(hm: HashMap<Ident, PatTy>, res: &mut HashMap<Ident, PatTy>) -> Res
     Ok(())
 }
 
-/// Traverses a ParseTree and builds a Hashmap containing the types of all named subpatterns.
+/// Traverses a `ParseTree` and builds a Hashmap containing the types of all named subpatterns.
 pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Result<HashMap<Ident, PatTy>, syn::Error> {
     match input {
         ParseTree::Node(id, args) => {
             let tys = pattern_tree::TYPES
                 .get(id.to_string().as_str())
-                .ok_or(Error::new_spanned(id, "Unknown Node!"))?;
+                .ok_or_else(|| Error::new_spanned(id, "Unknown Node!"))?;
             if tys.len() != args.len() { 
                 return Err(Error::new_spanned(
                     id, 
@@ -93,8 +93,8 @@ pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Resul
 
             Ok(h)
         },
-        ParseTree::Lit(_l) => Ok(HashMap::new()),
-        ParseTree::Any => Ok(HashMap::new()),
+        ParseTree::Lit(_) |
+        ParseTree::Any |
         ParseTree::Empty => Ok(HashMap::new()),
         ParseTree::Seq(a, b) => {
             let mut a_hm = get_named_subpattern_types(a, ty)?;
@@ -109,23 +109,23 @@ pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Resul
     }
 }
 
-/// Returns how many elements might be captured by the PatternTree `p`.
+/// Returns how many elements might be captured by the `PatternTree` `p`.
 /// 
 /// Alt: Exactly one occurrance
 /// Opt: At most one occurrance
 /// Seq: Any number of occurrances
 fn get_repeat_type(p: &ParseTree) -> Ty {
     match p {
-        ParseTree::Any => Ty::Alt,
-        ParseTree::Empty => Ty::Seq,
-        ParseTree::Lit(_) => Ty::Alt,
+        ParseTree::Any |
+        ParseTree::Lit(_) |
         ParseTree::Node(_, _) => Ty::Alt,
-        ParseTree::Alt(a, b) => max(get_repeat_type(a), get_repeat_type(b)),
+        ParseTree::Empty |
         ParseTree::Seq(_, _) => Ty::Seq,
+        ParseTree::Alt(a, b) => max(get_repeat_type(a), get_repeat_type(b)),
         ParseTree::Repeat(e, r) => {
             let c = get_repeat_type(e);
             match (c, r) {
-                (Ty::Alt, RepeatKind::Optional) => Ty::Opt,
+                (Ty::Alt, RepeatKind::Optional) |
                 (Ty::Opt, RepeatKind::Optional) => Ty::Opt,
                 _ => Ty::Seq
             }

@@ -21,7 +21,7 @@ fn gen_tmp_result_struct(name: &Ident, named_subpattern_types: &HashMap<Ident, P
         |(k, v)| {
             let e = &v.inner_ty; 
             match &v.ty {
-                Ty::Alt => quote!( #k: Option<&'o A::#e> ),
+                Ty::Alt |
                 Ty::Opt => quote!( #k: Option<&'o A::#e> ),
                 Ty::Seq => quote!( #k: Vec<&'o A::#e> ),
             }
@@ -32,7 +32,7 @@ fn gen_tmp_result_struct(name: &Ident, named_subpattern_types: &HashMap<Ident, P
     let struct_init_items = named_subpattern_types.iter().map(
         |(k, v)| {
             match &v.ty {
-                Ty::Alt => quote!( #k: None ),
+                Ty::Alt |
                 Ty::Opt => quote!( #k: None ),
                 Ty::Seq => quote!( #k: vec!() ),
             }
@@ -76,7 +76,7 @@ fn gen_final_result_struct(tmp_name: &Ident, final_name: &Ident, named_subpatter
         |(k, v)| {
             match &v.ty {
                 Ty::Alt => quote!( #k: cx.#k.unwrap() ),
-                Ty::Opt => quote!( #k: cx.#k ),
+                Ty::Opt |
                 Ty::Seq => quote!( #k: cx.#k ),
             }
         }
@@ -101,7 +101,7 @@ fn gen_final_result_struct(tmp_name: &Ident, final_name: &Ident, named_subpatter
     )
 }
 
-fn gen_result_struct(name: &Ident, items: &Vec<proc_macro2::TokenStream>, is_pub: bool) -> proc_macro2::TokenStream {
+fn gen_result_struct(name: &Ident, items: &[proc_macro2::TokenStream], is_pub: bool) -> proc_macro2::TokenStream {
     let is_pub_tok = if is_pub { quote!( pub ) } else {quote!() };
     quote!(
         #[derive(Debug, Clone)]

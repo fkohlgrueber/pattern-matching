@@ -74,7 +74,7 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::Expr> for Expr<'cx, 'o, Cx, A
 impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::StmtKind> for Stmt<'cx, 'o, Cx, Ast> {
     fn is_match(&self, cx: &'cx mut Cx, other: &'o ast::StmtKind) -> (bool, &'cx mut Cx) {
         match (self, other) {
-            (Stmt::Expr(i), ast::StmtKind::Expr(j)) => i.is_match(cx, j),
+            (Stmt::Expr(i), ast::StmtKind::Expr(j)) |
             (Stmt::Semi(i), ast::StmtKind::Semi(j)) => i.is_match(cx, j),
             _ => (false, cx),
         }

@@ -1,6 +1,7 @@
 #![feature(rustc_private)]
 
 extern crate syntax;
+extern crate rustc_data_structures;
 
 pub mod ast_match;
 pub mod pattern_tree;
@@ -27,7 +28,7 @@ pub trait IsMatchEquality: PartialEq {}
 
 impl<'cx, 'o, Cx: Clone, T> IsMatch<'cx, 'o, Cx, T> for T 
 where T: IsMatchEquality {
-    fn is_match(&self, cx: &'cx mut Cx, other: &T) -> (bool, &'cx mut Cx) {
+    fn is_match(&self, cx: &'cx mut Cx, other: &Self) -> (bool, &'cx mut Cx) {
         (self == other, cx)
     }
 }
@@ -109,7 +110,7 @@ where
                     'outer: for vals in iterators {
                         *cx = cx_orig.clone();
                         let mut skip = 0;
-                        for v in vals.iter() {
+                        for v in &vals {
                             let (r_e, cx_tmp) = e.is_match(cx, &other[skip..skip+v]);
                             cx = cx_tmp;
                             if !r_e {
@@ -206,7 +207,7 @@ pub trait ReduceSelf {}
 
 impl<T> Reduce for T 
 where T: ReduceSelf {
-    type Target = T;
+    type Target = Self;
 
     fn reduce(&self) -> &Self::Target {
         self

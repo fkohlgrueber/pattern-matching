@@ -30,9 +30,7 @@ impl Parse for Enums {
         while !input.is_empty() {
             res.push(input.parse()?);
         }
-        Ok(
-            Enums(res)
-        )
+        Ok(Self(res))
     }
 }
 
@@ -117,8 +115,8 @@ pub fn pattern_tree(input: TokenStream) -> TokenStream {
     ).collect::<Vec<_>>();
     let types = quote!(
         pattern_tree::lazy_static!{
-            pub static ref TYPES: std::collections::HashMap<&'static str, Vec<(&'static str, pattern_tree::Ty)>> = {
-                let mut p = std::collections::HashMap::new();
+            pub static ref TYPES: rustc_data_structures::fx::FxHashMap<&'static str, Vec<(&'static str, pattern_tree::Ty)>> = {
+                let mut p = rustc_data_structures::fx::FxHashMap::default();
                 #(#items)*
                 p
             };

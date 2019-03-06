@@ -16,6 +16,7 @@ where Self: Sized + Clone {
 }
 
 // Trait that has to be implemented on all types that can be used in a pattern tree
+#[allow(clippy::module_name_repetitions)]
 pub trait PatternTreeNode {}
 
 impl PatternTreeNode for char {}

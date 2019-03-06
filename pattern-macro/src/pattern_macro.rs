@@ -51,7 +51,7 @@ pub fn pattern(item: TokenStream) -> TokenStream {
 
 
     // generate the actual pattern structure
-    let tokens = to_tokens(&node, &repeat_ty, &named_subpattern_types);
+    let tokens = to_tokens(&node, repeat_ty, &named_subpattern_types);
 
     // generate result structs (and their impls)
     let result_structs = gen_result_structs(&struct_tmp_name, &struct_name, &named_subpattern_types);
@@ -104,7 +104,7 @@ pub fn pattern(item: TokenStream) -> TokenStream {
     ).into()
 }
 
-fn to_tokens(parse_tree: &ParseTree, ty: &Ty, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
+fn to_tokens(parse_tree: &ParseTree, ty: Ty, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
     match ty {
         Ty::Alt => to_tokens_alt(parse_tree, named_types),
         Ty::Opt => to_tokens_opt(parse_tree, named_types),
@@ -112,11 +112,11 @@ fn to_tokens(parse_tree: &ParseTree, ty: &Ty, named_types: &HashMap<Ident, PatTy
     }
 }
 
-fn node_to_tokens(ident: &proc_macro2::Ident, args: &Vec<ParseTree>, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
+fn node_to_tokens(ident: &proc_macro2::Ident, args: &[ParseTree], named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
     let tys = TYPES.get(ident.to_string().as_str()).expect("Unknown Node");
     if tys.len() != args.len() { panic!("Wrong number of arguments") }
     let tokens = args.iter().zip(tys.iter()).map(
-        |(e, (_inner_ty, ty))| to_tokens(e, ty, named_types)
+        |(e, (_inner_ty, ty))| to_tokens(e, *ty, named_types)
     ).collect::<Vec<_>>();
     quote!(pattern::pattern_match::pattern_tree::variants:: #ident ( #(#tokens),* ))
 }
@@ -157,6 +157,7 @@ fn to_tokens_alt(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) ->
     }
 }
 
+#[allow(clippy::panic_params)]
 fn to_tokens_opt(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
     let matchers = quote!(pattern::pattern_match::matchers);
     match parse_tree {
