@@ -6,14 +6,14 @@
 # Summary
 [summary]: #summary
 
-Introduce a DSL that allows to describe lints using *syntax tree patterns*.
+Introduce a domain-specific language (similar to regular expressions) that allows to describe lints using *syntax tree patterns*.
 
 
 # Motivation
 [motivation]: #motivation
 
 
-Finding parts of a syntax tree (AST, HIR, ...) that have certain properties (e.g. "an if that has a block as its condition") is a major task when writing lints. For non-trivial lints, it often requires nested pattern matching of AST / HIR nodes. For example, testing that an expression is a boolean literal requires the following checks:
+Finding parts of a syntax tree (AST, HIR, ...) that have certain properties (e.g. "*an if that has a block as its condition*") is a major task when writing lints. For non-trivial lints, it often requires nested pattern matching of AST / HIR nodes. For example, testing that an expression is a boolean literal requires the following checks:
 
 ```
 if let ast::ExprKind::Lit(lit) = &expr.node {
@@ -42,7 +42,9 @@ The code above matches if expressions that contain only another if expression (w
 
 Following the motivation above, the first goal this RFC is to **simplify writing and reading lints**. 
 
-The second part of the motivation is clippy's dependence on unstable compiler-internal data structures. Clippy lints are currently written against the compiler's AST / HIR which means that even small changes in these data structures might break a lot of lints. Therefore the second goal of this RFC is to **make lints independant of the compiler's AST / HIR data structures**.
+The second part of the motivation is clippy's dependence on unstable compiler-internal data structures. Clippy lints are currently written against the compiler's AST / HIR which means that even small changes in these data structures might break a lot of lints. The second goal of this RFC is to **make lints independant of the compiler's AST / HIR data structures**.
+
+# Approach
 
 A lot of complexity in writing lints currently seems to come from having to manually implement the matching logic (see code samples above). It's an imparative style that describes *how* to match a syntax tree node instead of specifying *what* should be matched against declaratively. In other areas, it's common to use declarative patterns to describe desired information and let the implementation do the actual matching. A well-known example of this approach are [regular expressions](https://en.wikipedia.org/wiki/Regular_expression). Instead of writing code that detects certain character sequences, one can describe a search pattern using a domain-specific language and search for matches using that pattern. The advantage of using a declarative domain-specific language is that its limited domain (e.g. matching character sequences in the case of regular expressions) allows to express entities in that domain in a very natural and expressive way.
 
@@ -82,30 +84,116 @@ impl EarlyLintPass for MyAwesomeLint {
 }
 ```
 
-Here, `my_pattern` is a function that expects a syntax tree expression as its argument and returns an `Option` that indicates whether the pattern matched.
+The `pattern!` macro call expands to a function `my_pattern` that expects a syntax tree expression as its argument and returns an `Option` that indicates whether the pattern matched.
 
 ## Pattern syntax
 
-Similar to regular expressions, the pattern syntax allows to 
+The following table gives an overview of the pattern syntax:
 
-Wildcards (`_`) match any expression:
+| Syntax                  | Concept          | Examples                                   |
+|-------------------------|------------------|--------------------------------------------|
+|`<lit>`                  | Literal          | `'x'`, `false`, `101`                      |
+|`<node-name>(<args>)`    | Node             | `Lit(Bool(true))`, `If(_, _, _)`           |
+|`_`                      | Any              | `Lit(_)`, `Lit(Char(_))`                   |
+|`()`                     | Empty            | `Array( () )`                              |
+|`<a> \| <b>`             | Alternation      | `Lit( Char(_) \| Bool(_) )`                |
+|`<a> <b>`                | Sequence         | `Tuple( Lit(Bool(_)) Lit(Int(_)) Lit(_) )` |
+|`<a>*` <br> `<a>+` <br> `<a>?` <br> `<a>{n}` <br> `<a>{n,m}` <br> `<a>{n,}` | Repetition <br> <br> <br> <br> <br><br> | `Array( _* )`, <br> `Block( Semi(_)+ )`, <br> `If(_, _, Block(_)?)`, <br> `Array( Lit(_){10} )`, <br> `Lit(_){5,10}`, <br> `Lit(Bool(_)){10,}` |
+|`<a>#<name>`             | Named submatch   | `Lit(Int(_))#foo` `Lit(Int(_#bar))`        |
+
+## Examples
+
+### Literal (`<lit>`):
 
 ```
 pattern!{
-    my_pattern: Expr = 
-        _
+    // matches the char 'x'
+    my_pattern: Char = 
+        'x'
 }
 ```
 
-Alternations (`a | b`) match if `a` or `b` match:
+
+### Node (`<node-name>(<args>)`):
+
+```
+pattern!{
+    // matches if expressions that have `false` as their condition
+    my_pattern: Expr = 
+        If( Lit(Bool(false)) , _, _?)
+}
+```
+
+### Any (`_`):
+
+```
+pattern!{
+    // matches any expression
+    my_pattern: Expr = 
+        _
+}
+
+pattern!{
+    // matches any Literal
+    my_pattern: Expr = 
+        Lit(_)
+}
+```
+
+### Empty (`()`):
+
+```
+pattern!{
+    // matches if the expression is an empty array
+    my_pattern: Expr = 
+        Array( () )
+}
+
+pattern!{
+    // matches if expressions that don't have an else clause
+    my_pattern: Expr = 
+        If(_, _, ())
+}
+```
+
+
+### Alternations (`a | b`):
 
 ```
 pattern!{
     // matches if the expression is an array or a literal
     my_pattern: Expr = 
-        Lit(_) | Array()
+        Lit(_) | Array(_*)
 }
 ```
+
+### Sequence (`<a> <b>`):
+
+```
+pattern!{
+    // matches the array [true, false]
+    my_pattern: Expr = 
+        Array( Lit(Bool(true)) Lit(Bool(false)) )
+}
+```
+
+### Repetition (`<a>*`, `<a>+`, `<a>?`, `<a>{n}`, `<a>{n,m}`, `<a>{n,}`):
+
+```
+pattern!{
+    // matches arrays that contain 5 'x's as their last or second-last elements
+    my_pattern: Expr = 
+        Array( _* Lit(Char('x')){5} _? )
+}
+
+pattern!{
+    // matches if expressions that **may or may not** have an else block
+    // Attn: `If(_, _, _)` matches only ifs that **have** an else block
+    my_pattern: Expr = 
+        If(_, _, _?)
+}
+```
+
 
 
 
