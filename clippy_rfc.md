@@ -196,6 +196,90 @@ pattern!{
 }
 ```
 
+#### Named submatch (`<a>#<name>`)
+
+```
+pattern!{
+    // matches character literals
+    my_pattern: Expr = 
+        Lit(Char(_)#foo)
+}
+
+pattern!{
+    // matches character literals
+    my_pattern: Expr = 
+        Lit(Char(_#bar))
+}
+
+pattern!{
+    // matches character literals
+    my_pattern: Expr = 
+        Lit(Char(_))#baz
+}
+```
+
+The reason for using named submatches is described in the following section.
+
+## The result type
+
+A lot of lints require checks that go beyond what the pattern syntax described above can express. For example, a lint might want to check whether a node was created as part of a macro expansion or whether there's no comment above a node.
+
+The current proposal allows one to assign names to parts of an expression. When matching a pattern against a syntax tree node, the return value contains references to all named subpattern.
+
+For example, given the following pattern
+
+```
+pattern!{
+    // matches character literals
+    my_pattern: Expr = 
+        Lit(Char(_#val_inner)#val)#val_outer
+}
+```
+
+one could get references to the nodes that matched the subpatterns in the following way:
+
+```
+...
+fn check_expr(expr: &syntax::ast::Expr) {
+    if let Some(result) = my_pattern(expr) {
+        result.val_inner  // type: &char
+        result.val        // type: &syntax::ast::Lit
+        result.val_outer  // type: &syntax::ast::Expr
+    }
+}
+```
+
+The types in the `result` struct depend on the pattern. For example, the following patterns
+
+```
+pattern!{
+    // matches arrays of character literals
+    my_pattern_seq: Expr = 
+        Array( Lit(_)*#foo )
+}
+pattern!{
+    // matches if expression is a boolean or integer literal
+    my_pattern_alt: Expr = 
+        Lit( Bool(_#bar) | Int(_) )
+}
+```
+
+produce the following named submatches:
+
+```
+...
+fn check_expr(expr: &syntax::ast::Expr) {
+    if let Some(result) = my_pattern_seq(expr) {
+        result.foo        // type: Vec<&syntax::ast::Expr>
+    }
+    if let Some(result) = my_pattern_alt(expr) {
+        result.bar        // type: Option<&bool>
+    }
+}
+```
+
+
+
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
 
@@ -210,7 +294,7 @@ It's a data structure similar to rust's AST / HIR, but with the following differ
 
 The code below shows a simplified version of the current PatternTree:
 
-*Note: The current implementation can be found [here](https://github.com/fkohlgrueber/pattern-matching/blob/dfb3bc9fbab69cec7c91e72564a63ebaa2ede638/pattern-match/src/pattern_tree.rs#L50-L96).*
+> Note: The current implementation can be found [here](https://github.com/fkohlgrueber/pattern-matching/blob/dfb3bc9fbab69cec7c91e72564a63ebaa2ede638/pattern-match/src/pattern_tree.rs#L50-L96).
 
 
 ```
