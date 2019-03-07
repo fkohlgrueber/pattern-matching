@@ -280,7 +280,8 @@ Using named subpatterns, users can write lints in two stages. First, a coarse se
 
 ## Implementing clippy lints using patterns
 
-TODO: link to collapsible_if reimplementation in own rust-clippy fork.
+As a "real-world" example, I re-implemented the `collapsible_if` lint using patterns. The code can be found [here](https://github.com/fkohlgrueber/rust-clippy-pattern/blob/039b07ecccaf96d6aa7504f5126720d2c9cceddd/clippy_lints/src/collapsible_if.rs#L88-L163). The pattern-based version passes all test cases that were written for `collapsible_if`.
+
 
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
@@ -428,57 +429,87 @@ All `IsMatch` implementations for matching the current *PatternTree* against `sy
 # Drawbacks
 [drawbacks]: #drawbacks
 
-Why should we *not* do this?
+TODO: Performance
+- late filtering
+- currently not optimized for performance, but no conceptual limitations
+
+- Currently, only a small part of the Rust syntax is implemented
 
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
 
-- Why is this design the best in the space of possible designs?
-- What other designs have been considered and what is the rationale for not choosing them?
-- What is the impact of not doing this?
+**TODO: Advantages**
+
+## Alternatives
+
+### Rust-like pattern syntax
+
+The proposed pattern syntax requires users to know the structure of the `PatternTree` (which is very similar to the AST's / HIR's structure) and also the pattern syntax. An alternative would be to introduce a pattern syntax that is similar to actual Rust syntax (probably like the `quote!` macro). For example, a pattern that matches `if` expressions that have `false` in their condition could look like this:
+
+```
+if false {
+    #[*]
+}
+```
+
+#### Problems
+
+Extending Rust syntax (which is quite complex by itself) with additional syntax needed for specifying patterns (alternations, sequences, repetisions, named submatches, ...) might become difficult to read and really hard to parse properly.
+
+For example, a pattern that matches a binary operation that has `0` on both sides might look like this:
+
+```
+0 #[*:BinOpKind] 0
+```
+
+Now consider this slightly more complex example:
+
+```
+1 + 0 #[*:BinOpKind] 0
+```
+
+The parser would need to know the precedence of `#[*:BinOpKind]` because it affects the structure of the resulting AST. `1 + 0 + 0` is parsed as `(1 + 0) + 0` while `1 + 0 * 0` is parsed as `1 + (0 * 0)`. Since the pattern could be any `BinOpKind`, the precedence cannot be known in advance.
+
+Another example of a problem would be named submatches. Take a look at this pattern:
+
+```
+fn test() {
+    1 #foo
+}
+```
+
+Which node is `#foo` referring to? `int`, `ast::Lit`, `ast::Expr`, `ast::Stmt`? Naming subpatterns in a rust-like syntax is difficult because a lot of AST nodes don't have a syntactic element that can be used to put the name tag on.
+
+In general, Rust syntax contains a lot of code structure implicitly. This structure is reconstructed during parsing (e.g. binary operations are reconstructed using operator precedence and left-to-right) and is one of the reasons why parsing is a complex task. The advantage of this approach is that writing code is simpler for users.
+
+When writing *syntax tree patterns*, each element of the hierarchy might have alternatives, repetitions, etc.. Respecting that while still allowing human-friendly syntax that contains structure implicitly seems to be really complex, if not impossible.
+
+Developing such a syntax would also require to maintain a custom parser that is at least as complex as the Rust parser itself. Additionally, future changes in the Rust syntax might be incompatible with such a syntax.
+
+In summary, I think that developing such a syntax would introduce a lot of complexity to solve a relatively minor problem.
+
+The issue of users not knowing about the *PatternTree* structure could be solved by a tool that, given a rust program, generates a pattern that matches only this program (similar to the clippy author lint).
+
 
 # Prior art
 [prior-art]: #prior-art
 
-Discuss prior art, both the good and the bad, in relation to this proposal.
-A few examples of what this can include are:
+The pattern syntax is heavily inspired by regular expressions (repetitions, alternatives, sequences, ...).
 
-- For language, library, cargo, tools, and compiler proposals: Does this feature exist in other programming languages and what experience have their community had?
-- For community proposals: Is this done by some other community and what were their experiences with it?
-- For other teams: What lessons can we learn from what other communities have done here?
-- Papers: Are there any published papers or great posts that discuss this? If you have some relevant papers to refer to, this can serve as a more detailed theoretical background.
-
-This section is intended to encourage you as an author to think about the lessons from other languages, provide readers of your RFC with a fuller picture.
-If there is no prior art, that is fine - your ideas are interesting to us whether they are brand new or if it is an adaptation from other languages.
-
-Note that while precedent set by other languages is some motivation, it does not on its own motivate an RFC.
-Please also take into consideration that rust sometimes intentionally diverges from common language features.
+From what I've seen until now, other linters also implement lints that directly work on syntax tree data structures, just like clippy does currently. I would therefore consider the pattern syntax to be *new*, but please correct me if I'm wrong.
 
 # Unresolved questions
 [unresolved-questions]: #unresolved-questions
 
-- What parts of the design do you expect to resolve through the RFC process before this gets merged?
-- What parts of the design do you expect to resolve through the implementation of this feature before stabilization?
-- What related issues do you consider out of scope for this RFC that could be addressed in the future independently of the solution that comes out of this RFC?
+**TODO: How to handle multiple matches?**
 
 # Future possibilities
 [future-possibilities]: #future-possibilities
 
-Think about what the natural extension and evolution of your proposal would
-be and how it would affect the language and project as a whole in a holistic
-way. Try to use this section as a tool to more fully consider all possible
-interactions with the project and language in your proposal.
-Also consider how the this all fits into the roadmap for the project
-and of the relevant sub-team.
+**TODO: Write**
 
-This is also a good place to "dump ideas", if they are out of scope for the
-RFC you are writing but otherwise related.
-
-If you have tried and cannot think of any future possibilities,
-you may simply state that you cannot think of anything.
-
-Note that having something written down in the future-possibilities section
-is not a reason to accept the current or a future RFC; such notes should be
-in the section on motivation or rationale in this or subsequent RFCs.
-The section merely provides additional information.
-
+- Backreferences (`=#foo`)
+- early filtering
+- match descendent
+- Negation operator
+- Functional composition (Library of popular patterns)
