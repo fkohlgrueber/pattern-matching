@@ -103,7 +103,9 @@ The following table gives an overview of the pattern syntax:
 
 ## Examples
 
-### Literal (`<lit>`):
+The following examples demonstate how the pattern syntax can be used:
+
+#### Literal (`<lit>`)
 
 ```
 pattern!{
@@ -114,7 +116,7 @@ pattern!{
 ```
 
 
-### Node (`<node-name>(<args>)`):
+#### Node (`<node-name>(<args>)`)
 
 ```
 pattern!{
@@ -124,7 +126,7 @@ pattern!{
 }
 ```
 
-### Any (`_`):
+#### Any (`_`)
 
 ```
 pattern!{
@@ -140,7 +142,7 @@ pattern!{
 }
 ```
 
-### Empty (`()`):
+#### Empty (`()`)
 
 ```
 pattern!{
@@ -157,7 +159,7 @@ pattern!{
 ```
 
 
-### Alternations (`a | b`):
+#### Alternations (`a | b`)
 
 ```
 pattern!{
@@ -167,7 +169,7 @@ pattern!{
 }
 ```
 
-### Sequence (`<a> <b>`):
+#### Sequence (`<a> <b>`)
 
 ```
 pattern!{
@@ -177,7 +179,7 @@ pattern!{
 }
 ```
 
-### Repetition (`<a>*`, `<a>+`, `<a>?`, `<a>{n}`, `<a>{n,m}`, `<a>{n,}`):
+#### Repetition (`<a>*`, `<a>+`, `<a>?`, `<a>{n}`, `<a>{n,m}`, `<a>{n,}`)
 
 ```
 pattern!{
@@ -194,22 +196,52 @@ pattern!{
 }
 ```
 
-
-
-
-
-Explain the proposal as if it was already included in the language and you were teaching it to another Rust programmer. That generally means:
-
-- Introducing new named concepts.
-- Explaining the feature largely in terms of examples.
-- Explaining how Rust programmers should *think* about the feature, and how it should impact the way they use Rust. It should explain the impact as concretely as possible.
-- If applicable, provide sample error messages, deprecation warnings, or migration guidance.
-- If applicable, describe the differences between teaching this to existing Rust programmers and new Rust programmers.
-
-For implementation-oriented RFCs (e.g. for compiler internals), this section should focus on how compiler contributors should think about the change, and give examples of its concrete impact. For policy RFCs, this section should provide an example-driven introduction to the policy, and explain its impact in concrete terms.
-
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
+
+## PatternTree
+
+The core data structure of this RFC is the **PatternTree**. 
+
+It's a data structure similar to rust's AST / HIR, but with the following differences:
+
+- The PatternTree doesn't contain parsing information like `Span`s
+- The PatternTree can represent alternatives, sequences and optionals
+
+The code below shows a simplified version of the current PatternTree:
+
+*Note: The current implementation can be found [here](https://github.com/fkohlgrueber/pattern-matching/blob/dfb3bc9fbab69cec7c91e72564a63ebaa2ede638/pattern-match/src/pattern_tree.rs#L50-L96).*
+
+
+```
+pub enum Expr {
+    Lit(Alt<Lit>),
+    Array(Seq<Expr>),
+    Block_(Alt<BlockType>),
+    If(Alt<Expr>, Alt<BlockType>, Opt<Expr>),
+    IfLet(
+        Alt<BlockType>,
+        Opt<Expr>,
+    ),
+}
+
+pub enum Lit {
+    Char(Alt<char>),
+    Bool(Alt<bool>),
+    Int(Alt<u128>),
+}
+
+pub enum Stmt {
+    Expr(Alt<Expr>),
+    Semi(Alt<Expr>),
+}
+
+pub enum BlockType {
+    Block(Seq<Stmt>),
+}
+```
+
+
 
 This is the technical portion of the RFC. Explain the design in sufficient detail that:
 
