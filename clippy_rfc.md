@@ -222,9 +222,7 @@ The reason for using named submatches is described in the following section.
 
 ## The result type
 
-A lot of lints require checks that go beyond what the pattern syntax described above can express. For example, a lint might want to check whether a node was created as part of a macro expansion or whether there's no comment above a node.
-
-The current proposal allows one to assign names to parts of an expression. When matching a pattern against a syntax tree node, the return value contains references to all named subpattern.
+A lot of lints require checks that go beyond what the pattern syntax described above can express. For example, a lint might want to check whether a node was created as part of a macro expansion or whether there's no comment above a node. Another example would be a lint that wants to match two nodes that have the same value (as needed by lints like `almost_swapped`). Instead of allowing users to write these checks into the pattern directly (which might make patterns hard to read), the proposed solution allows users to assign names to parts of a pattern expression. When matching a pattern against a syntax tree node, the return value will then contain references to all nodes that were matched by these named subpatterns.
 
 For example, given the following pattern
 
@@ -278,10 +276,38 @@ fn check_expr(expr: &syntax::ast::Expr) {
 }
 ```
 
+Using named subpatterns, users can write lints in two stages. First, a coarse selection of possible matches is produced by the pattern syntax. In the second stage, the named subpattern references can be used to do additional tests like the ones described above.
 
+## Implementing clippy lints using patterns
+
+TODO: link to collapsible_if reimplementation in own rust-clippy fork.
 
 # Reference-level explanation
 [reference-level-explanation]: #reference-level-explanation
+
+## Overview
+
+```
+                          Pattern syntax
+                                |
+                                |  parsing / lowering
+                                v
+                           PatternTree                                
+                                ^
+                                |
+                                |
+                          IsMatch trait
+                                |
+                                |
+             +---------------+-----------+---------+
+             |               |           |         |
+             v               v           v         v
+        syntax::ast     rustc::hir      syn       ...
+```
+
+The pattern syntax described in the previous section is parsed / lowered into the so-called *PatternTree* data structure that represents a valid syntax tree pattern. Matching a *PatternTree* against an actual syntax tree (e.g. rust ast / hir or the syn ast, ...) is done using the *IsMatch* trait.
+
+The *PatternTree* and the *IsMatch* trait are introduced in more detail in the following sections.
 
 ## PatternTree
 
@@ -325,15 +351,79 @@ pub enum BlockType {
 }
 ```
 
+The `Alt`, `Seq` and `Opt` structs look like these:
 
+> Note: The current implementation can be found [here](https://github.com/fkohlgrueber/pattern-matching/blob/dfb3bc9fbab69cec7c91e72564a63ebaa2ede638/pattern-match/src/matchers.rs#L35-L60).
 
-This is the technical portion of the RFC. Explain the design in sufficient detail that:
+```
+pub enum Alt<T> {
+    Any,
+    Elmt(Box<T>),
+    Alt(Box<Self>, Box<Self>),
+    Named(Box<Self>, ...)
+}
 
-- Its interaction with other features is clear.
-- It is reasonably clear how the feature would be implemented.
-- Corner cases are dissected by example.
+pub enum Opt<T> {
+    Any,  // anything, but not None
+    Elmt(Box<T>),
+    None,
+    Alt(Box<Self>, Box<Self>),
+    Named(Box<Self>, ...)
+}
 
-The section should return to the examples given in the previous section, and explain more fully how the detailed proposal makes those examples work.
+pub enum Seq<T> {
+    Any,
+    Empty,
+    Elmt(Box<T>),
+    Repeat(Box<Self>, RepeatRange),
+    Seq(Box<Self>, Box<Self>),
+    Alt(Box<Self>, Box<Self>),
+    Named(Box<Self>, ...)
+}
+
+pub struct RepeatRange {
+    pub start: usize,
+    pub end: Option<usize>  // exclusive
+}
+```
+
+## Parsing / Lowering
+
+The input of a `pattern!` macro call is parsed into a `ParseTree` first and then lowered to a `PatternTree`.
+
+Valid patterns depend on the *PatternTree* definitions. For example, the pattern `Lit(Bool(_)*)` isn't valid because the parameter type of the `Lit` variant of the `Expr` enum is `Any<Lit>` and therefore doesn't support repetition (`*`). As another example, `Array( Lit(_)* )` is a valid pattern because the parameter of `Array` is of type `Seq<Expr>` which allows sequences and repetitions.
+
+> Note: names in the pattern syntax correspond to *PatternTree* enum **variants**. For example, the `Lit` in the pattern above refers to the `Lit` variant of the `Expr` enum (`Expr::Lit`), not the `Lit` enum.
+
+## The IsMatch Trait
+
+The pattern syntax and the *PatternTree* are independant of specific syntax tree implementations (rust ast / hir, syn, ...). When looking at the different pattern examples in the previous sections, it can be seen that the patterns don't contain any information specific to a certain syntax tree implementation. In contrast, clippy lints currently match against ast / hir syntax tree nodes and therefore directly depend on their implementation.
+
+How to match the *PatternTree* against a certain syntax tree is expressed by the `IsMatch` trait (simplified implementation shown below):
+
+```
+pub trait IsMatch<O> {
+    fn is_match(&self, other: &'o O) -> bool;
+}
+```
+
+This trait needs to be implemented on each enum of the *PatternTree* (for the corresponding syntax tree types). For example, the `IsMatch` implementation for matching `ast::LitKind` against the *PatternTree's* `Lit` enum might look like this:
+
+```
+impl IsMatch<ast::LitKind> for Lit {
+    fn is_match(&self, other: &ast::LitKind) -> bool {
+        match (self, other) {
+            (Lit::Char(i), ast::LitKind::Char(j)) => i.is_match(cx, j),
+            (Lit::Bool(i), ast::LitKind::Bool(j)) => i.is_match(cx, j),
+            (Lit::Int(i), ast::LitKind::Int(j, _)) => i.is_match(cx, j),
+            _ => false,
+        }
+    }
+}
+```
+
+All `IsMatch` implementations for matching the current *PatternTree* against `syntax::ast` can be found [here](https://github.com/fkohlgrueber/pattern-matching/blob/dfb3bc9fbab69cec7c91e72564a63ebaa2ede638/pattern-match/src/ast_match.rs).
+
 
 # Drawbacks
 [drawbacks]: #drawbacks
