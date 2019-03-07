@@ -513,3 +513,4 @@ From what I've seen until now, other linters also implement lints that directly 
 - match descendent
 - Negation operator
 - Functional composition (Library of popular patterns)
+- Tool that generates patterns from rust syntax
