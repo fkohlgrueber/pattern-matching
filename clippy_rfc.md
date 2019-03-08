@@ -483,7 +483,11 @@ Even though I'd expect that a lot of lints can be written using the proposed pat
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
 
-**TODO: Advantages**
+Specifying lints using syntax tree patterns has a couple of advantages. First, syntax tree patterns allow users to describe patterns in a simple and expressive way. This makes it easier to write new lints for both novices and experts and also makes reading / modifying existing lints simpler. 
+
+Another advantage is that lints are independent of specific syntax tree implementations (e.g. AST / HIR, ...). When these syntax tree implementations change, only the `IsMatch` trait implementations need to be adapted and existing lints can remain unchanged. This also means that if the `IsMatch` trait implementations were integrated into the compiler, updating the `IsMatch` implementations would be required for the compiler to compiler successfully. This could reduce the number of times clippy breaks because of changes in the compiler. Another advantage of the pattern's independence is that converting an `EarlyLintPass` lint into a `LatePassLint` wouldn't require rewriting the whole pattern matching code. In fact, the pattern might work just fine without any adaptions.
+
+
 
 ## Alternatives
 
@@ -546,16 +550,157 @@ From what I've seen until now, other linters also implement lints that directly 
 # Unresolved questions
 [unresolved-questions]: #unresolved-questions
 
-**TODO: How to handle multiple matches?**
+#### How to handle multiple matches?
+
+When matching a syntax tree node against a pattern, there are possibly multiple ways in which the pattern can be matched. A simple example of this would be the following pattern:
+
+```
+pattern!{
+    my_pattern: Expr = 
+        Array( _* Lit(_)+#literals)
+}
+```
+
+This pattern matches arrays that end with at least one literal. Now given the array `[x, 1, 2]`, should `1` be matched as part of the `_*` or the `Lit(_)+` part of the pattern? The difference is important because the named submatch `#literals` would contain 1 or 2 elements depending how the pattern is matched. In regular expressions, this problem is solved by matching "greedy" by default and "non-greedy" optionally.
+
+I haven't looked much into this yet because I don't know how relevant it is for most lints. The current implementation simply returns the first match it finds.
 
 # Future possibilities
 [future-possibilities]: #future-possibilities
 
-**TODO: Write**
+#### Implement rest of Rust Syntax
 
-- Backreferences (`=#foo`)
-- early filtering
-- match descendent
-- Negation operator
-- Functional composition (Library of popular patterns)
-- Tool that generates patterns from rust syntax
+The current project only implements a small part of the Rust syntax. In the future, this should incrementally be extended to more syntax to allow implementing more lints. Implementing more of the Rust syntax requires extending the `PatternTree` and `IsMatch` implementations, but should be relatively straight-forward.
+
+#### Early filtering
+
+As described in the *Drawbacks/Performance* section, allowing additional checks during the pattern matching might be beneficial.
+
+The pattern below shows how this could look like:
+
+```
+pattern!{
+    pat_if_without_else: Expr = 
+        If(
+            _,
+            Block(
+                Expr( If(_, _, ())#inner )
+                | Semi( If(_, _, ())#inner ) 
+            )#then, 
+            ()
+        )
+    where
+        !in_macro(#then.span);
+}
+```
+
+The difference compared to the currently proposed two-stage filtering is that using early filtering, the condition (`!in_macro(#then.span)` in this case) would be evaluated as soon as the `Block(_)#then` was matched.
+
+Another idea in this area would be to introduce a syntax for backreferences. They could be used to require that multiple parts of a pattern should match the same value. For example, the `assign_op_pattern` lint that searches for `a = a op b` and recommends changing it to `a op= b` requires that both occurrances of `a` are the same. Using `=#...` as syntax for backreferences, the lint could be implemented like this:
+
+```
+pattern!{
+    assign_op_pattern: Expr = 
+        Assign(_#target, Binary(_, =#target, _)
+}
+```
+
+#### Match descendant
+
+A lot of lints currently implement custom visitors that check whether any subtree (which might not be a direct descendant) of the current node matches some properties. This cannot be expressed with the proposed pattern syntax. Extending the pattern syntax to allow patterns like "a function that contains at least two return statements" could be a practical addition.
+
+#### Negation operator for alternatives
+
+For patterns like "a literal that is not a boolean literal" one currently needs to list all alternatives except the boolean case. Introducing a negation operator that allows to write `Lit(!Bool(_))` might be a good idea.
+
+#### Functional composition
+
+Patterns currently don't have any concept of composition. This leads to repetitions within patterns. For example, one of the collapsible-if patterns currently has to be written like this:
+
+```
+pattern!{
+    pat_if_else: Expr = 
+        If(
+            _, 
+            _, 
+            Block_(
+                Block(
+                    Expr((If(_, _, _?) | IfLet(_, _?))#else_) | 
+                    Semi((If(_, _, _?) | IfLet(_, _?))#else_)
+                )#block_inner
+            )#block
+        ) |
+        IfLet(
+            _, 
+            Block_(
+                Block(
+                    Expr((If(_, _, _?) | IfLet(_, _?))#else_) | 
+                    Semi((If(_, _, _?) | IfLet(_, _?))#else_)
+                )#block_inner
+            )#block
+        )
+}
+```
+
+If patterns supported defining functions of subpatterns, the code could be simplified as follows:
+
+```
+pattern!{
+    fn expr_or_semi(expr: Expr) -> Stmt {
+        Expr(expr) | Semi(expr)
+    }
+    fn if_or_if_let(then: Block, else: Opt<Expr>) -> Expr {
+        If(_, then, else) | IfLet(then, else)
+    }
+    pat_if_else: Expr = 
+        if_or_if_let(
+            _,
+            Block_(
+                Block(
+                    expr_or_semi( if_or_if_let(_, _?)#else_ )
+                )#block_inner
+            )#block
+        )
+}
+```
+
+Additionally, common patterns like `expr_or_semi` could be shared between different lints.
+
+#### Clippy Pattern Author
+
+Another improvement could be to create a tool that, given some valid Rust syntax, generates a pattern that matches this syntax exactly. This would make starting to write a pattern easier. A user could take a look at the patterns generated for a couple of Rust code examples and use that information to write a pattern that matches all of them.
+
+This is similar to clippy's author lint.
+
+#### Supporting other syntaxes
+
+Most of the proposed system is language-agnostic. For example, the pattern syntax could also be used to describe patterns for other programming languages.
+
+In order to support other languages' syntaxes, one would need to implement another `PatternTree` that sufficiently describes the languages' AST and implement `IsMatch` for this `PatternTree` and the languages' AST.
+
+One aspect of this is that it would even be possible to write lints that work on the pattern syntax itself. For example, when writing the following pattern
+
+
+```
+pattern!{
+    my_pattern: Expr = 
+        Array( Lit(Bool(false)) Lit(Bool(false)) )
+}
+```
+
+a lint that works on the pattern syntax's AST could suggest using this pattern instead:
+
+```
+pattern!{
+    my_pattern: Expr = 
+        Array( Lit(Bool(false)){2} )
+}
+```
+
+In the future, clippy could use this system to also provide lints for custom syntaxes like those found in macros.
+
+# Final Note
+
+This is the first RFC I've ever written and it might be a little rough around the edges.
+
+I'm looking forward to hearing your feedback and discussing the proposal.
