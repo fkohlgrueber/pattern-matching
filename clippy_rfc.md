@@ -222,7 +222,7 @@ The reason for using named submatches is described in the following section.
 
 ## The result type
 
-A lot of lints require checks that go beyond what the pattern syntax described above can express. For example, a lint might want to check whether a node was created as part of a macro expansion or whether there's no comment above a node. Another example would be a lint that wants to match two nodes that have the same value (as needed by lints like `almost_swapped`). Instead of allowing users to write these checks into the pattern directly (which might make patterns hard to read), the proposed solution allows users to assign names to parts of a pattern expression. When matching a pattern against a syntax tree node, the return value will then contain references to all nodes that were matched by these named subpatterns.
+A lot of lints require checks that go beyond what the pattern syntax described above can express. For example, a lint might want to check whether a node was created as part of a macro expansion or whether there's no comment above a node. Another example would be a lint that wants to match two nodes that have the same value (as needed by lints like `almost_swapped`). Instead of allowing users to write these checks into the pattern directly (which might make patterns hard to read), the proposed solution allows users to assign names to parts of a pattern expression. When matching a pattern against a syntax tree node, the return value will contain references to all nodes that were matched by these named subpatterns.
 
 For example, given the following pattern
 
@@ -414,9 +414,9 @@ This trait needs to be implemented on each enum of the *PatternTree* (for the co
 impl IsMatch<ast::LitKind> for Lit {
     fn is_match(&self, other: &ast::LitKind) -> bool {
         match (self, other) {
-            (Lit::Char(i), ast::LitKind::Char(j)) => i.is_match(cx, j),
-            (Lit::Bool(i), ast::LitKind::Bool(j)) => i.is_match(cx, j),
-            (Lit::Int(i), ast::LitKind::Int(j, _)) => i.is_match(cx, j),
+            (Lit::Char(i), ast::LitKind::Char(j)) => i.is_match(j),
+            (Lit::Bool(i), ast::LitKind::Bool(j)) => i.is_match(j),
+            (Lit::Int(i), ast::LitKind::Int(j, _)) => i.is_match(j),
             _ => false,
         }
     }
@@ -429,11 +429,56 @@ All `IsMatch` implementations for matching the current *PatternTree* against `sy
 # Drawbacks
 [drawbacks]: #drawbacks
 
-TODO: Performance
-- late filtering
-- currently not optimized for performance, but no conceptual limitations
+#### Performance
 
-- Currently, only a small part of the Rust syntax is implemented
+The pattern matching code is currently not optimized for performance, so it might be slower than hand-written matching code.
+Additionally, the two-stage approach (matching against the coarse pattern first and checking for additional properties later) might be slower than the current practice of checking for structure and additional properties in one pass. For example, the following lint
+
+```
+pattern!{
+    pat_if_without_else: Expr = 
+        If(
+            _,
+            Block(
+                Expr( If(_, _, ())#inner )
+                | Semi( If(_, _, ())#inner ) 
+            )#then, 
+            ()
+        )
+}
+...
+fn check_expr(&mut self, cx: &EarlyContext<'_>, expr: &ast::Expr) {
+    if let Some(result) = pat_if_without_else(expr) {
+        if !block_starts_with_comment(cx, result.then) {
+            ...
+        }
+}
+```
+
+first matches against the pattern and then checks that the `then` block doesn't start with a comment. Using clippy's current approach, it's possible to check for these conditions earlier:
+
+```
+fn check_expr(&mut self, cx: &EarlyContext<'_>, expr: &ast::Expr) {
+    if_chain! {
+        if let ast::ExprKind::If(ref check, ref then, None) = expr.node;
+        if !block_starts_with_comment(cx, then);
+        if let Some(inner) = expr_block(then);
+        if let ast::ExprKind::If(ref check_inner, ref content, None) = inner.node;
+        then {
+            ...
+        }
+    }
+}
+```
+
+Whether or not this causes performance regressions depends on actual patterns. If it turns out to be a problem, the pattern matching algorithms could be extended to allow "early filtering".
+
+That being said, I don't see any conceptual limitations regarding pattern matching performance.
+
+#### Applicability
+
+Even though I'd expect that a lot of lints can be written using the proposed pattern syntax, it's unlikely that all lints can be expressed using patterns. I suspect that there will still be lints that need to be implemented by writing custom pattern matching code. This would lead to mix within clippy's codebase where some lints are implemented using patterns and others aren't. This inconsistency might be considered a drawback.
+
 
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
