@@ -3,6 +3,8 @@
 - RFC PR: (leave this empty)
 - Rust Issue: (leave this empty)
 
+> Note: This project is part of my Master's Thesis (supervised by [@oli-obk](https://github.com/oli-obk))
+
 # Summary
 [summary]: #summary
 
