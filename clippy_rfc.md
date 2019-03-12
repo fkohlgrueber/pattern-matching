@@ -1,5 +1,5 @@
 - Feature Name: syntax_tree_patterns
-- Start Date: (fill me in with today's date, YYYY-MM-DD)
+- Start Date: 2019-03-12
 - RFC PR: (leave this empty)
 - Rust Issue: (leave this empty)
 
