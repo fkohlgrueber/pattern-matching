@@ -376,22 +376,24 @@ As a "real-world" example, I re-implemented the `collapsible_if` lint using patt
 
 ## Overview
 
+The following diagram shows the dependencies between the main parts of the proposed solution:
+
 ```
-                          Pattern syntax
-                                |
-                                |  parsing / lowering
-                                v
-                           PatternTree                                
-                                ^
-                                |
-                                |
-                          IsMatch trait
-                                |
-                                |
-             +---------------+-----------+---------+
-             |               |           |         |
-             v               v           v         v
-        syntax::ast     rustc::hir      syn       ...
+                          Pattern syntax                                     
+                                |                                           
+                                |  parsing / lowering                       
+                                v                                           
+                           PatternTree                                      
+                                ^                                             
+                                |                                             
+                                |                                             
+                          IsMatch trait                                       
+                                |                                             
+                                |                                             
+             +---------------+-----------+---------+                      
+             |               |           |         |                      
+             v               v           v         v                      
+        syntax::ast     rustc::hir      syn       ...               
 ```
 
 The pattern syntax described in the previous section is parsed / lowered into the so-called *PatternTree* data structure that represents a valid syntax tree pattern. Matching a *PatternTree* against an actual syntax tree (e.g. rust ast / hir or the syn ast, ...) is done using the *IsMatch* trait.
@@ -488,7 +490,7 @@ Valid patterns depend on the *PatternTree* definitions. For example, the pattern
 
 The pattern syntax and the *PatternTree* are independant of specific syntax tree implementations (rust ast / hir, syn, ...). When looking at the different pattern examples in the previous sections, it can be seen that the patterns don't contain any information specific to a certain syntax tree implementation. In contrast, clippy lints currently match against ast / hir syntax tree nodes and therefore directly depend on their implementation.
 
-How to match the *PatternTree* against a certain syntax tree is expressed by the `IsMatch` trait (simplified implementation shown below):
+The connection between the *PatternTree* and specific syntax tree implementations is the `IsMatch` trait. It defines how to match *PatternTree* nodes against specific syntax tree nodes. A simplified implementation of the `IsMatch` trait is shown below:
 
 ```
 pub trait IsMatch<O> {
@@ -559,7 +561,7 @@ fn check_expr(&mut self, cx: &EarlyContext<'_>, expr: &ast::Expr) {
 }
 ```
 
-Whether or not this causes performance regressions depends on actual patterns. If it turns out to be a problem, the pattern matching algorithms could be extended to allow "early filtering".
+Whether or not this causes performance regressions depends on actual patterns. If it turns out to be a problem, the pattern matching algorithms could be extended to allow "early filtering" (see the [Early Filtering](#early-filtering) section in Future Possibilities).
 
 That being said, I don't see any conceptual limitations regarding pattern matching performance.
 
@@ -571,9 +573,9 @@ Even though I'd expect that a lot of lints can be written using the proposed pat
 # Rationale and alternatives
 [rationale-and-alternatives]: #rationale-and-alternatives
 
-Specifying lints using syntax tree patterns has a couple of advantages. First, syntax tree patterns allow users to describe patterns in a simple and expressive way. This makes it easier to write new lints for both novices and experts and also makes reading / modifying existing lints simpler. 
+Specifying lints using syntax tree patterns has a couple of advantages compared to the current approach of manually writing matching code. First, syntax tree patterns allow users to describe patterns in a simple and expressive way. This makes it easier to write new lints for both novices and experts and also makes reading / modifying existing lints simpler. 
 
-Another advantage is that lints are independent of specific syntax tree implementations (e.g. AST / HIR, ...). When these syntax tree implementations change, only the `IsMatch` trait implementations need to be adapted and existing lints can remain unchanged. This also means that if the `IsMatch` trait implementations were integrated into the compiler, updating the `IsMatch` implementations would be required for the compiler to compiler successfully. This could reduce the number of times clippy breaks because of changes in the compiler. Another advantage of the pattern's independence is that converting an `EarlyLintPass` lint into a `LatePassLint` wouldn't require rewriting the whole pattern matching code. In fact, the pattern might work just fine without any adaptions.
+Another advantage is that lints are independent of specific syntax tree implementations (e.g. AST / HIR, ...). When these syntax tree implementations change, only the `IsMatch` trait implementations need to be adapted and existing lints can remain unchanged. This also means that if the `IsMatch` trait implementations were integrated into the compiler, updating the `IsMatch` implementations would be required for the compiler to compile successfully. This could reduce the number of times clippy breaks because of changes in the compiler. Another advantage of the pattern's independence is that converting an `EarlyLintPass` lint into a `LatePassLint` wouldn't require rewriting the whole pattern matching code. In fact, the pattern might work just fine without any adaptions.
 
 
 
@@ -615,7 +617,7 @@ fn test() {
 }
 ```
 
-Which node is `#foo` referring to? `int`, `ast::Lit`, `ast::Expr`, `ast::Stmt`? Naming subpatterns in a rust-like syntax is difficult because a lot of AST nodes don't have a syntactic element that can be used to put the name tag on.
+Which node is `#foo` referring to? `int`, `ast::Lit`, `ast::Expr`, `ast::Stmt`? Naming subpatterns in a rust-like syntax is difficult because a lot of AST nodes don't have a syntactic element that can be used to put the name tag on. In these situations, the only sensible option would be to assign the name tag to the outermost node (`ast::Stmt` in the example above), because the information of all child nodes can be retrieved through the outermost node. The problem with this then would be that accessing inner nodes (like `ast::Lit`) would again require manual pattern matching.
 
 In general, Rust syntax contains a lot of code structure implicitly. This structure is reconstructed during parsing (e.g. binary operations are reconstructed using operator precedence and left-to-right) and is one of the reasons why parsing is a complex task. The advantage of this approach is that writing code is simpler for users.
 
@@ -627,6 +629,7 @@ In summary, I think that developing such a syntax would introduce a lot of compl
 
 The issue of users not knowing about the *PatternTree* structure could be solved by a tool that, given a rust program, generates a pattern that matches only this program (similar to the clippy author lint).
 
+For some simple cases (like the first example above), it might be possible to successfully mix Rust and pattern syntax. This space could be further explored in a future extension.
 
 # Prior art
 [prior-art]: #prior-art
