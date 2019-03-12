@@ -107,45 +107,12 @@ The `pattern!` macro call expands to a function `my_pattern` that expects a synt
 
 ## Pattern syntax
 
-The following table gives an overview of the pattern syntax:
+The following examples demonstate the pattern syntax:
 
-| Syntax                  | Concept          | Examples                                   |
-|-------------------------|------------------|--------------------------------------------|
-|`<lit>`                  | Literal          | `'x'`, `false`, `101`                      |
-|`<node-name>(<args>)`    | Node             | `Lit(Bool(true))`, `If(_, _, _)`           |
-|`_`                      | Any              | `Lit(_)`, `Lit(Char(_))`                   |
-|`()`                     | Empty            | `Array( () )`                              |
-|`<a> \| <b>`             | Alternation      | `Lit( Char(_) \| Bool(_) )`                |
-|`<a> <b>`                | Sequence         | `Tuple( Lit(Bool(_)) Lit(Int(_)) Lit(_) )` |
-|`<a>*` <br> `<a>+` <br> `<a>?` <br> `<a>{n}` <br> `<a>{n,m}` <br> `<a>{n,}` | Repetition <br> <br> <br> <br> <br><br> | `Array( _* )`, <br> `Block( Semi(_)+ )`, <br> `If(_, _, Block(_)?)`, <br> `Array( Lit(_){10} )`, <br> `Lit(_){5,10}`, <br> `Lit(Bool(_)){10,}` |
-|`<a>#<name>`             | Named submatch   | `Lit(Int(_))#foo` `Lit(Int(_#bar))`        |
-
-## Examples
-
-The following examples demonstate how the pattern syntax can be used:
-
-#### Literal (`<lit>`)
-
-```
-pattern!{
-    // matches the char 'x'
-    my_pattern: Char = 
-        'x'
-}
-```
-
-
-#### Node (`<node-name>(<args>)`)
-
-```
-pattern!{
-    // matches if expressions that have `false` as their condition
-    my_pattern: Expr = 
-        If( Lit(Bool(false)) , _, _?)
-}
-```
 
 #### Any (`_`)
+
+The simplest pattern is the any pattern. It matches anything and is therefore similar to regex's `*`.
 
 ```
 pattern!{
@@ -153,15 +120,72 @@ pattern!{
     my_pattern: Expr = 
         _
 }
+```
 
+#### Node (`<node-name>(<args>)`)
+
+Nodes are used to match a specific variant of an AST node. A node has a name and a number of arguments that depends on the node type. For example, the `Lit` node has a single argument that describes the type of the literal. As another example, the `If` node has three arguments describing the if's condition, then block and else block.
+
+```
 pattern!{
-    // matches any Literal
+    // matches any expression that is a literal
     my_pattern: Expr = 
         Lit(_)
+}
+
+pattern!{
+    // matches any expression that is a boolean literal
+    my_pattern: Expr = 
+        Lit(Bool(_))
+}
+
+pattern!{
+    // matches if expressions that have a boolean literal in their condition
+    // Note: The `_?` syntax here means that the else branch is optional and can be anything. 
+    //       This is discussed in more detail in the section `Repetition`.
+    my_pattern: Expr = 
+        If( Lit(Bool(_)) , _, _?)
+}
+```
+
+
+#### Literal (`<lit>`)
+
+A pattern can also contain Rust literals. These literals match themselves.
+
+```
+pattern!{
+    // matches the boolean literal false
+    my_pattern: Expr = 
+        Lit(Bool(false))
+}
+
+pattern!{
+    // matches the character literal 'x'
+    my_pattern: Expr = 
+        Lit(Char('x'))
+}
+```
+
+#### Alternations (`a | b`)
+
+```
+pattern!{
+    // matches if the literal is a boolean or integer literal
+    my_pattern: Lit = 
+        Bool(_) | Int(_)
+}
+
+pattern!{
+    // matches if the expression is a char literal with value 'x' or 'y'
+    my_pattern: Expr = 
+        Lit( Char('x' | 'y') )
 }
 ```
 
 #### Empty (`()`)
+
+The empty pattern represents an empty sequence or the `None` variant of an optional.
 
 ```
 pattern!{
@@ -177,17 +201,6 @@ pattern!{
 }
 ```
 
-
-#### Alternations (`a | b`)
-
-```
-pattern!{
-    // matches if the expression is an array or a literal
-    my_pattern: Expr = 
-        Lit(_) | Array(_*)
-}
-```
-
 #### Sequence (`<a> <b>`)
 
 ```
@@ -200,16 +213,28 @@ pattern!{
 
 #### Repetition (`<a>*`, `<a>+`, `<a>?`, `<a>{n}`, `<a>{n,m}`, `<a>{n,}`)
 
+Elements may be repeated. The syntax for specifying repetitions is identical to [regex's syntax](https://docs.rs/regex/1.1.2/regex/#repetitions).
+
 ```
 pattern!{
-    // matches arrays that contain 5 'x's as their last or second-last elements
+    // matches arrays that contain 2 'x's as their last or second-last elements
+    // Examples:
+    //     ['x', 'x']                         match
+    //     ['x', 'x', 'y']                    match
+    //     ['a', 'b', 'c', 'x', 'x', 'y']     match
+    //     ['x', 'x', 'y', 'z']               no match
     my_pattern: Expr = 
-        Array( _* Lit(Char('x')){5} _? )
+        Array( _* Lit(Char('x')){2} _? )
 }
 
 pattern!{
     // matches if expressions that **may or may not** have an else block
     // Attn: `If(_, _, _)` matches only ifs that **have** an else block
+    //
+    //              | if with else block | if witout else block
+    // If(_, _, _)  |       match        |       no match
+    // If(_, _, _?) |       match        |        match
+    // If(_, _, ()) |      no match      |        match
     my_pattern: Expr = 
         If(_, _, _?)
 }
@@ -219,30 +244,46 @@ pattern!{
 
 ```
 pattern!{
-    // matches character literals
+    // matches character literals and gives the literal the name foo
     my_pattern: Expr = 
         Lit(Char(_)#foo)
 }
 
 pattern!{
-    // matches character literals
+    // matches character literals and gives the char the name bar
     my_pattern: Expr = 
         Lit(Char(_#bar))
 }
 
 pattern!{
-    // matches character literals
+    // matches character literals and gives the expression the name baz
     my_pattern: Expr = 
         Lit(Char(_))#baz
 }
 ```
 
-The reason for using named submatches is described in the following section.
+The reason for using named submatches is described in the section [The result type](#the-result-type).
+
+### Summary
+
+The following table gives an summary of the pattern syntax:
+
+| Syntax                  | Concept          | Examples                                   |
+|-------------------------|------------------|--------------------------------------------|
+|`_`                      | Any              | `_`                                        |
+|`<node-name>(<args>)`    | Node             | `Lit(Bool(true))`, `If(_, _, _)`           |
+|`<lit>`                  | Literal          | `'x'`, `false`, `101`                      |
+|`<a> \| <b>`             | Alternation      | `Char(_) \| Bool(_)`                       |
+|`()`                     | Empty            | `Array( () )`                              |
+|`<a> <b>`                | Sequence         | `Tuple( Lit(Bool(_)) Lit(Int(_)) Lit(_) )` |
+|`<a>*` <br> `<a>+` <br> `<a>?` <br> `<a>{n}` <br> `<a>{n,m}` <br> `<a>{n,}` | Repetition <br> <br> <br> <br> <br><br> | `Array( _* )`, <br> `Block( Semi(_)+ )`, <br> `If(_, _, Block(_)?)`, <br> `Array( Lit(_){10} )`, <br> `Lit(_){5,10}`, <br> `Lit(Bool(_)){10,}` |
+|`<a>#<name>`             | Named submatch   | `Lit(Int(_))#foo` `Lit(Int(_#bar))`        |
+
 
 ## The result type
 [the-result-type]: #the-result-type
 
-A lot of lints require checks that go beyond what the pattern syntax described above can express. For example, a lint might want to check whether a node was created as part of a macro expansion or whether there's no comment above a node. Another example would be a lint that wants to match two nodes that have the same value (as needed by lints like `almost_swapped`). Instead of allowing users to write these checks into the pattern directly (which might make patterns hard to read), the proposed solution allows users to assign names to parts of a pattern expression. When matching a pattern against a syntax tree node, the return value will contain references to all nodes that were matched by these named subpatterns.
+A lot of lints require checks that go beyond what the pattern syntax described above can express. For example, a lint might want to check whether a node was created as part of a macro expansion or whether there's no comment above a node. Another example would be a lint that wants to match two nodes that have the same value (as needed by lints like `almost_swapped`). Instead of allowing users to write these checks into the pattern directly (which might make patterns hard to read), the proposed solution allows users to assign names to parts of a pattern expression. When matching a pattern against a syntax tree node, the return value will contain references to all nodes that were matched by these named subpatterns. This is similar to capture groups in regular expressions.
 
 For example, given the following pattern
 
@@ -267,7 +308,7 @@ fn check_expr(expr: &syntax::ast::Expr) {
 }
 ```
 
-The types in the `result` struct depend on the pattern. For example, the following patterns
+The types in the `result` struct depend on the pattern. For example, the following pattern
 
 ```
 pattern!{
@@ -275,6 +316,20 @@ pattern!{
     my_pattern_seq: Expr = 
         Array( Lit(_)*#foo )
 }
+```
+
+matches arrays that consist of any number of literal expressions. Because those expressions are named `foo`, the result struct contains a `foo` attribute which is a vector of expressions:
+
+```
+...
+if let Some(result) = my_pattern_seq(expr) {
+    result.foo        // type: Vec<&syntax::ast::Expr>
+}
+```
+
+Another result type occurs when a name is only defined in one branch of an alternation:
+
+```
 pattern!{
     // matches if expression is a boolean or integer literal
     my_pattern_alt: Expr = 
@@ -282,21 +337,34 @@ pattern!{
 }
 ```
 
-produce the following named submatches:
+In the pattern above, the `bar` name is only defined if the pattern matches a boolean literal. If it matches an integer literal, the name isn't set. To account fot this, the result struct's `bar` attribute is an option type:
 
 ```
 ...
-fn check_expr(expr: &syntax::ast::Expr) {
-    if let Some(result) = my_pattern_seq(expr) {
-        result.foo        // type: Vec<&syntax::ast::Expr>
-    }
-    if let Some(result) = my_pattern_alt(expr) {
-        result.bar        // type: Option<&bool>
-    }
+if let Some(result) = my_pattern_alt(expr) {
+    result.bar        // type: Option<&bool>
 }
 ```
 
-Using named subpatterns, users can write lints in two stages. First, a coarse selection of possible matches is produced by the pattern syntax. In the second stage, the named subpattern references can be used to do additional tests like the ones described above.
+It's also possible to use a name in multiple alternation branches if they have compatible types:
+
+```
+pattern!{
+    // matches if expression is a boolean or integer literal
+    my_pattern_mult: Expr = 
+        Lit(_#baz) | Array( Lit(_#baz) )
+}
+...
+if let Some(result) = my_pattern_mult(expr) {
+    result.baz        // type: &syntax::ast::Lit
+}
+```
+
+Named submatches are a **flat** namespace and this is intended. In the example above, two different sub-structures are assigned to a flat name. I expect that for most lints, a flat namespace is sufficient and easier to work with than a hierarchical one.
+
+#### Two stages
+
+Using named subpatterns, users can write lints in two stages. First, a coarse selection of possible matches is produced by the pattern syntax. In the second stage, the named subpattern references can be used to do additional tests like asserting that a node hasn't been created as part of a macro expansion.
 
 ## Implementing clippy lints using patterns
 
