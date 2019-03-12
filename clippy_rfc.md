@@ -103,7 +103,7 @@ impl EarlyLintPass for MyAwesomeLint {
 
 The `pattern!` macro call expands to a function `my_pattern` that expects a syntax tree expression as its argument and returns an `Option` that indicates whether the pattern matched.
 
-> Note: The result type is explained in more detail in [a later section](#result-type). For now, it's enough to know that the result is `Some` if the pattern matched and `None` otherwise.
+> Note: The result type is explained in more detail in [a later section](#the-result-type). For now, it's enough to know that the result is `Some` if the pattern matched and `None` otherwise.
 
 ## Pattern syntax
 
@@ -240,7 +240,7 @@ pattern!{
 The reason for using named submatches is described in the following section.
 
 ## The result type
-[result-type]: #result-type
+[the-result-type]: #the-result-type
 
 A lot of lints require checks that go beyond what the pattern syntax described above can express. For example, a lint might want to check whether a node was created as part of a macro expansion or whether there's no comment above a node. Another example would be a lint that wants to match two nodes that have the same value (as needed by lints like `almost_swapped`). Instead of allowing users to write these checks into the pattern directly (which might make patterns hard to read), the proposed solution allows users to assign names to parts of a pattern expression. When matching a pattern against a syntax tree node, the return value will contain references to all nodes that were matched by these named subpatterns.
 
