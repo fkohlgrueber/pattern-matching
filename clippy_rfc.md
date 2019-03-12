@@ -25,7 +25,22 @@ if let ast::ExprKind::Lit(lit) = &expr.node {
 }
 ```
 
-Writing this kind of matching code quickly becomes a complex task and the resulting code is often hard to comprehend.
+Writing this kind of matching code quickly becomes a complex task and the resulting code is often hard to comprehend. The code below shows a simplified version of the pattern matching required by the `collapsible_if` lint:
+
+```
+// simplified version of the collapsible_if lint
+if let ast::ExprKind::If(check, then, None) = &expr.node {
+    if then.stmts.len() == 1 {
+        if let ast::StmtKind::Expr(inner) | ast::StmtKind::Semi(inner) = &then.stmts[0].node {
+            if let ast::ExprKind::If(check_inner, content, None) = &inner.node {
+                ...
+            }
+        }
+    }
+}
+```
+
+The `if_chain` macro can improve readability by flattening the nested if statements, but the resulting code is still quite hard to read:
 
 ```
 // simplified version of the collapsible_if lint
@@ -40,7 +55,7 @@ if_chain! {
 }
 ```
 
-The code above matches if expressions that contain only another if expression (where both ifs don't have an else branch). While it's easy to explain what the lint does, it's hard to see that from looking at the code sample above.
+The code above matches if expressions that contain only another if expression (where both ifs don't have an else branch). While it's easy to explain what the lint does, it's hard to see that from looking at the code samples above.
 
 Following the motivation above, the first goal this RFC is to **simplify writing and reading lints**. 
 
@@ -87,6 +102,8 @@ impl EarlyLintPass for MyAwesomeLint {
 ```
 
 The `pattern!` macro call expands to a function `my_pattern` that expects a syntax tree expression as its argument and returns an `Option` that indicates whether the pattern matched.
+
+> Note: The result type is explained in more detail in [a later section](#result-type). For now, it's enough to know that the result is `Some` if the pattern matched and `None` otherwise.
 
 ## Pattern syntax
 
@@ -223,6 +240,7 @@ pattern!{
 The reason for using named submatches is described in the following section.
 
 ## The result type
+[result-type]: #result-type
 
 A lot of lints require checks that go beyond what the pattern syntax described above can express. For example, a lint might want to check whether a node was created as part of a macro expansion or whether there's no comment above a node. Another example would be a lint that wants to match two nodes that have the same value (as needed by lints like `almost_swapped`). Instead of allowing users to write these checks into the pattern directly (which might make patterns hard to read), the proposed solution allows users to assign names to parts of a pattern expression. When matching a pattern against a syntax tree node, the return value will contain references to all nodes that were matched by these named subpatterns.
 
