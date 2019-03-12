@@ -702,7 +702,7 @@ A lot of lints currently implement custom visitors that check whether any subtre
 
 #### Negation operator for alternatives
 
-For patterns like "a literal that is not a boolean literal" one currently needs to list all alternatives except the boolean case. Introducing a negation operator that allows to write `Lit(!Bool(_))` might be a good idea.
+For patterns like "a literal that is not a boolean literal" one currently needs to list all alternatives except the boolean case. Introducing a negation operator that allows to write `Lit(!Bool(_))` might be a good idea. This pattern would be eqivalent to `Lit( Char(_) | Int(_) )` (given that currently only three literal types are implemented).
 
 #### Functional composition
 
