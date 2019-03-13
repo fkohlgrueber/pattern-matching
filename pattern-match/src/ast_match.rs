@@ -35,7 +35,10 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::LitKind> for Lit<'cx, 'o, Cx,
                     (false, cx)
                 }
             },
-            _ => (false, cx),
+            // no match otherwise
+            (Lit::Char(_), _) |
+            (Lit::Bool(_), _) |
+            (Lit::Int(_, _), _) => (false, cx)
         }
     }
 }
@@ -73,7 +76,12 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::ExprKind> for Expr<'cx, 'o, C
                     (false, cx)
                 }
             },
-            _ => (false, cx),
+            // no match otherwise
+            (Expr::Lit(_), _) |
+            (Expr::Block_(_), _) |
+            (Expr::Array(_), _) |
+            (Expr::If(_, _, _), _) |
+            (Expr::IfLet(_, _), _) => (false, cx)
         }
     }
 }
@@ -89,7 +97,9 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::StmtKind> for Stmt<'cx, 'o, C
         match (self, other) {
             (Stmt::Expr(i), ast::StmtKind::Expr(j)) |
             (Stmt::Semi(i), ast::StmtKind::Semi(j)) => i.is_match(cx, j),
-            _ => (false, cx),
+            // no match otherwise
+            (Stmt::Expr(_), _) |
+            (Stmt::Semi(_), _) => (false, cx)
         }
     }
 }
@@ -120,7 +130,10 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::LitIntType> for LitIntType<'c
             (LitIntType::Signed(i), ast::LitIntType::Signed(j)) => i.is_match(cx, j),
             (LitIntType::Unsigned(i), ast::LitIntType::Unsigned(j)) => i.is_match(cx, j),
             (LitIntType::Unsuffixed, ast::LitIntType::Unsuffixed) => (true, cx),
-            _ => (false, cx),
+            // no match otherwise
+            (LitIntType::Signed(_), _) |
+            (LitIntType::Unsigned(_), _) |
+            (LitIntType::Unsuffixed, _) => (false, cx)
         }
     }
 }
@@ -134,7 +147,13 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::IntTy> for IntTy {
             (IntTy::I32, ast::IntTy::I32) |
             (IntTy::I64, ast::IntTy::I64) |
             (IntTy::I128, ast::IntTy::I128) => (true, cx),
-            _ => (false, cx),
+            // no match otherwise
+            (IntTy::Isize, _) |
+            (IntTy::I8, _) |
+            (IntTy::I16, _) |
+            (IntTy::I32, _) |
+            (IntTy::I64, _) |
+            (IntTy::I128, _) => (false, cx)
         }
     }
 }
@@ -148,7 +167,13 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::UintTy> for UintTy {
             (UintTy::U32, ast::UintTy::U32) |
             (UintTy::U64, ast::UintTy::U64) |
             (UintTy::U128, ast::UintTy::U128) => (true, cx),
-            _ => (false, cx),
+            // no match otherwise
+            (UintTy::Usize, _) |
+            (UintTy::U8, _) |
+            (UintTy::U16, _) |
+            (UintTy::U32, _) |
+            (UintTy::U64, _) |
+            (UintTy::U128, _) => (false, cx),
         }
     }
 }

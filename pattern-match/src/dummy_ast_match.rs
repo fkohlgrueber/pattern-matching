@@ -101,7 +101,10 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyLit> for Lit<'cx, 'o, Cx, Dum
                     (false, cx)
                 }
             },
-            _ => (false, cx),
+            // no match otherwise
+            (Lit::Char(_), _) |
+            (Lit::Bool(_), _) |
+            (Lit::Int(_, _), _) => (false, cx)
         }
     }
 }
@@ -128,7 +131,13 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyExpr> for Expr<'cx, 'o, Cx, D
                 }
             },
             // IfLet not implemented
-            _ => (false, cx),
+
+            // no match otherwise
+            (Expr::Lit(_), _) |
+            (Expr::Block_(_), _) |
+            (Expr::Array(_), _) |
+            (Expr::If(_, _, _), _) |
+            (Expr::IfLet(_, _), _) => (false, cx)
         }
     }
 }
@@ -138,7 +147,9 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyStmt> for Stmt<'cx, 'o, Cx, D
         match (self, other) {
             (Stmt::Expr(i), DummyStmt::Expr(j)) |
             (Stmt::Semi(i), DummyStmt::Semi(j)) => i.is_match(cx, j),
-            _ => (false, cx),
+            // no match otherwise
+            (Stmt::Expr(_), _) |
+            (Stmt::Semi(_), _) => (false, cx)
         }
     }
 }
@@ -157,7 +168,10 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyLitIntType> for LitIntType<'c
             (LitIntType::Signed(i), DummyLitIntType::Signed(j)) => i.is_match(cx, j),
             (LitIntType::Unsigned(i), DummyLitIntType::Unsigned(j)) => i.is_match(cx, j),
             (LitIntType::Unsuffixed, DummyLitIntType::Unsuffixed) => (true, cx),
-            _ => (false, cx),
+            // no match otherwise
+            (LitIntType::Signed(_), _) |
+            (LitIntType::Unsigned(_), _) |
+            (LitIntType::Unsuffixed, _) => (false, cx)
         }
     }
 }
@@ -171,7 +185,13 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyIntTy> for IntTy {
             (IntTy::I32, DummyIntTy::I32) |
             (IntTy::I64, DummyIntTy::I64) |
             (IntTy::I128, DummyIntTy::I128) => (true, cx),
-            _ => (false, cx),
+            // no match otherwise
+            (IntTy::Isize, _) |
+            (IntTy::I8, _) |
+            (IntTy::I16, _) |
+            (IntTy::I32, _) |
+            (IntTy::I64, _) |
+            (IntTy::I128, _) => (false, cx)
         }
     }
 }
@@ -185,7 +205,13 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyUintTy> for UintTy {
             (UintTy::U32, DummyUintTy::U32) |
             (UintTy::U64, DummyUintTy::U64) |
             (UintTy::U128, DummyUintTy::U128) => (true, cx),
-            _ => (false, cx),
+            // no match otherwise
+            (UintTy::Usize, _) |
+            (UintTy::U8, _) |
+            (UintTy::U16, _) |
+            (UintTy::U32, _) |
+            (UintTy::U64, _) |
+            (UintTy::U128, _) => (false, cx),
         }
     }
 }
