@@ -137,8 +137,8 @@ pattern!(
         If(
             Lit(Bool(true)), 
             Block(
-                Expr(Lit(Int(_)))+ Semi(Lit(Bool(_)))* | 
-                Expr(Lit(Int(_)))* Semi(Lit(Bool(_)))+
+                Expr(Lit(Int(_, _)))+ Semi(Lit(Bool(_)))* | 
+                Expr(Lit(Int(_, _)))* Semi(Lit(Bool(_)))+
             ),
             _?
         )#var

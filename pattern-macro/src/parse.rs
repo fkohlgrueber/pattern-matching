@@ -202,6 +202,12 @@ fn atom_expr(input: ParseStream) -> Result<ParseTree> {
             id,
             vals.into_iter().collect()
         ))
+    } else if input.peek(Ident) {
+        let id = input.parse::<Ident>()?;
+        Ok(ParseTree::Node(
+            id,
+            vec!()
+        ))
     } else if input.peek(token::Paren) {
         let content;
         parenthesized!(content in input);
@@ -213,7 +219,7 @@ fn atom_expr(input: ParseStream) -> Result<ParseTree> {
         let e = input.parse()?;
         Ok(ParseTree::Lit(e))
     } else {
-        Err(input.error("Expected _, (), <node>(...) or a literal"))
+        Err(input.error("Expected _, (), <node>(...), <node> or a literal"))
     }
 }
 

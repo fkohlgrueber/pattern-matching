@@ -55,12 +55,12 @@ fn test_nested() {
 
     let ast_node = Array(vec!(
         Array(vec!(
-            Lit(Int(1)),
-            Lit(Int(2))
+            Lit(Int(1, Unsuffixed)),
+            Lit(Int(2, Unsuffixed))
         )),
         Array(vec!(
-            Lit(Int(3)),
-            Lit(Int(4))
+            Lit(Int(3, Unsuffixed)),
+            Lit(Int(4, Unsuffixed))
         ))
     ));
 
@@ -68,10 +68,10 @@ fn test_nested() {
     assert_eq!(
         res.map(|x| x.var_inner),
         Some(vec!(
-            &Lit(Int(1)),
-            &Lit(Int(2)),
-            &Lit(Int(3)),
-            &Lit(Int(4))
+            &Lit(Int(1, Unsuffixed)),
+            &Lit(Int(2, Unsuffixed)),
+            &Lit(Int(3, Unsuffixed)),
+            &Lit(Int(4, Unsuffixed))
         ))
     );
 }
@@ -148,4 +148,22 @@ fn test_nonmatch_subpattern_repeat() {
         res.unwrap().var,
         None
     );
+}
+
+pattern!{
+    pat_int_suffix: Expr = 
+        Lit( Int(_, Unsuffixed | Signed(I32)))
+}
+
+#[test]
+fn test_enum_unit_variant() {
+    use pattern::pattern_match::dummy_ast_match::variants::*;
+    
+    let ast_node = Lit( Int(123, Unsuffixed));
+    let ast_node_2 = Lit( Int(123, Signed(I32)));
+    let ast_node_3 = Lit( Int(123, Signed(I64)));
+
+    assert!( pat_int_suffix(&ast_node).is_some() );
+    assert!( pat_int_suffix(&ast_node_2).is_some() );
+    assert!( pat_int_suffix(&ast_node_3).is_none() );
 }

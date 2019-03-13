@@ -14,6 +14,9 @@ impl<'o> MatchAssociations<'o> for Ast {
     type Int = u128;
     type Stmt = ast::Stmt;
     type BlockType = ast::Block;
+    type LitIntType = ast::LitIntType;
+    type IntTy = ast::IntTy;
+    type UintTy = ast::UintTy;
 }
 
 impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::LitKind> for Lit<'cx, 'o, Cx, Ast> {
@@ -21,7 +24,17 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::LitKind> for Lit<'cx, 'o, Cx,
         match (self, other) {
             (Lit::Char(i), ast::LitKind::Char(j)) => i.is_match(cx, j),
             (Lit::Bool(i), ast::LitKind::Bool(j)) => i.is_match(cx, j),
-            (Lit::Int(i), ast::LitKind::Int(j, _)) => i.is_match(cx, j),
+            (Lit::Int(i, i_suffix), ast::LitKind::Int(j, j_suffix)) => {
+                let cx_orig = cx.clone();
+                let (r, cx) = i.is_match(cx, j);
+                let (r_suffix, cx) = i_suffix.is_match(cx, j_suffix);
+                if r && r_suffix {
+                    (true, cx)
+                } else {
+                    *cx = cx_orig;
+                    (false, cx)
+                }
+            },
             _ => (false, cx),
         }
     }
@@ -98,6 +111,45 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::Block> for BlockType<'cx, 'o,
 impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::Lit> for Lit<'cx, 'o, Cx, Ast> {
     fn is_match(&self, cx: &'cx mut Cx, other: &'o ast::Lit) -> (bool, &'cx mut Cx) {
         self.is_match(cx, &other.node)
+    }
+}
+
+impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::LitIntType> for LitIntType<'cx, 'o, Cx, Ast> {
+    fn is_match(&self, cx: &'cx mut Cx, other: &'o ast::LitIntType) -> (bool, &'cx mut Cx) {
+        match (self, other) {
+            (LitIntType::Signed(i), ast::LitIntType::Signed(j)) => i.is_match(cx, j),
+            (LitIntType::Unsigned(i), ast::LitIntType::Unsigned(j)) => i.is_match(cx, j),
+            (LitIntType::Unsuffixed, ast::LitIntType::Unsuffixed) => (true, cx),
+            _ => (false, cx),
+        }
+    }
+}
+
+impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::IntTy> for IntTy {
+    fn is_match(&self, cx: &'cx mut Cx, other: &'o ast::IntTy) -> (bool, &'cx mut Cx) {
+        match (self, other) {
+            (IntTy::Isize, ast::IntTy::Isize) |
+            (IntTy::I8, ast::IntTy::I8) |
+            (IntTy::I16, ast::IntTy::I16) |
+            (IntTy::I32, ast::IntTy::I32) |
+            (IntTy::I64, ast::IntTy::I64) |
+            (IntTy::I128, ast::IntTy::I128) => (true, cx),
+            _ => (false, cx),
+        }
+    }
+}
+
+impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, ast::UintTy> for UintTy {
+    fn is_match(&self, cx: &'cx mut Cx, other: &'o ast::UintTy) -> (bool, &'cx mut Cx) {
+        match (self, other) {
+            (UintTy::Usize, ast::UintTy::Usize) |
+            (UintTy::U8, ast::UintTy::U8) |
+            (UintTy::U16, ast::UintTy::U16) |
+            (UintTy::U32, ast::UintTy::U32) |
+            (UintTy::U64, ast::UintTy::U64) |
+            (UintTy::U128, ast::UintTy::U128) => (true, cx),
+            _ => (false, cx),
+        }
     }
 }
 

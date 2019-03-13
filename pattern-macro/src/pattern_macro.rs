@@ -118,7 +118,12 @@ fn node_to_tokens(ident: &proc_macro2::Ident, args: &[ParseTree], named_types: &
     let tokens = args.iter().zip(tys.iter()).map(
         |(e, (_inner_ty, ty))| to_tokens(e, *ty, named_types)
     ).collect::<Vec<_>>();
-    quote!(pattern::pattern_match::pattern_tree::variants:: #ident ( #(#tokens),* ))
+    let args = if args.is_empty() {
+        quote!( )
+    } else {
+        quote!( ( #(#tokens),* ) )
+    };
+    quote!(pattern::pattern_match::pattern_tree::variants:: #ident #args)
 }
 
 
