@@ -9,4 +9,5 @@ members = [
     "pattern",
     "test",
     "test-clippy",
+    "is-match-macro"
 ]

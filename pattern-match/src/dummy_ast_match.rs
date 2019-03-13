@@ -8,8 +8,8 @@ pub enum DummyExpr {
     Lit(DummyLit),
     Array(Vec<DummyExpr>),
     Block(DummyBlock),
-    If(Box<DummyExpr>, DummyBlock, Box<Option<DummyExpr>>)
-    // IfLet not implemented
+    If(Box<DummyExpr>, DummyBlock, Box<Option<DummyExpr>>),
+    IfLet(DummyBlock, Box<Option<DummyExpr>>)
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -85,72 +85,60 @@ impl<'o> MatchAssociations<'o> for DummyAst {
 
 // Dummy Ast IsMatch implementations
 
-impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyLit> for Lit<'cx, 'o, Cx, DummyAst> {
-    fn is_match(&self, cx: &'cx mut Cx, other: &'o DummyLit) -> (bool, &'cx mut Cx) {
-        match (self, other) {
-            (Lit::Char(i), DummyLit::Char(j)) => i.is_match(cx, j),
-            (Lit::Bool(i), DummyLit::Bool(j)) => i.is_match(cx, j),
-            (Lit::Int(i, i_suffix), DummyLit::Int(j, j_suffix)) => {
-                let cx_orig = cx.clone();
-                let (r, cx) = i.is_match(cx, j);
-                let (r_suffix, cx) = i_suffix.is_match(cx, j_suffix);
-                if r && r_suffix {
-                    (true, cx)
-                } else {
-                    *cx = cx_orig;
-                    (false, cx)
-                }
-            },
-            // no match otherwise
-            (Lit::Char(_), _) |
-            (Lit::Bool(_), _) |
-            (Lit::Int(_, _), _) => (false, cx)
-        }
+use is_match_macro::derive_is_match_impl;
+
+derive_is_match_impl!{
+    Expr <> DummyExpr => DummyAst => {
+        Lit(l) <> Lit(l)
+        Block_(b) <> Block(b)
+        Array(a) <> Array(a)
+        If(check, then, else_) <> If(check, then, else_)
+        IfLet(then, else_) <> IfLet(then, else_)
     }
 }
 
-impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyExpr> for Expr<'cx, 'o, Cx, DummyAst> {
-    fn is_match(&self, cx: &'cx mut Cx, other: &'o DummyExpr) -> (bool, &'cx mut Cx) {
-        match (self, other) {
-            (Expr::Lit(i), DummyExpr::Lit(j)) => 
-                i.is_match(cx, j),
-            (Expr::Block_(i), DummyExpr::Block(j)) => 
-                i.is_match(cx, j),
-            (Expr::Array(i), DummyExpr::Array(j)) => 
-                i.is_match(cx, j),
-            (Expr::If(i_check, i_then, i_else), DummyExpr::If(j_check, j_then, j_else)) => {
-                let cx_orig = cx.clone();
-                let (r_c, cx) = i_check.is_match(cx, j_check);
-                let (r_t, cx) = i_then.is_match(cx, j_then);
-                let (r_e, cx) = i_else.is_match(cx, j_else);
-                if r_c && r_t && r_e {
-                    (true, cx)
-                } else {
-                    *cx = cx_orig;
-                    (false, cx)
-                }
-            },
-            // IfLet not implemented
-
-            // no match otherwise
-            (Expr::Lit(_), _) |
-            (Expr::Block_(_), _) |
-            (Expr::Array(_), _) |
-            (Expr::If(_, _, _), _) |
-            (Expr::IfLet(_, _), _) => (false, cx)
-        }
+derive_is_match_impl!{
+    LitIntType <> DummyLitIntType => DummyAst => {
+        Signed(i) <> Signed(i)
+        Unsigned(i) <> Unsigned(i)
+        Unsuffixed <> Unsuffixed
     }
 }
 
-impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyStmt> for Stmt<'cx, 'o, Cx, DummyAst> {
-    fn is_match(&self, cx: &'cx mut Cx, other: &'o DummyStmt) -> (bool, &'cx mut Cx) {
-        match (self, other) {
-            (Stmt::Expr(i), DummyStmt::Expr(j)) |
-            (Stmt::Semi(i), DummyStmt::Semi(j)) => i.is_match(cx, j),
-            // no match otherwise
-            (Stmt::Expr(_), _) |
-            (Stmt::Semi(_), _) => (false, cx)
-        }
+derive_is_match_impl!{
+    Lit <> DummyLit => DummyAst => {
+        Char(i) <> Char(i)
+        Bool(i) <> Bool(i)
+        Int(n, suffix) <> Int(n, suffix)
+    }
+}
+
+derive_is_match_impl!{
+    Stmt <> DummyStmt => DummyAst => {
+        Expr(e) <> Expr(e)
+        Semi(s) <> Semi(s)
+    }
+}
+
+derive_is_match_impl!{
+    IntTy <> DummyIntTy => {
+        Isize <> Isize
+        I8 <> I8
+        I16 <> I16
+        I32 <> I32
+        I64 <> I64
+        I128 <> I128
+    }
+}
+
+derive_is_match_impl!{
+    UintTy <> DummyUintTy => {
+        Usize <> Usize
+        U8 <> U8
+        U16 <> U16
+        U32 <> U32
+        U64 <> U64
+        U128 <> U128
     }
 }
 
@@ -158,60 +146,6 @@ impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyBlock> for BlockType<'cx, 'o,
     fn is_match(&self, cx: &'cx mut Cx, other: &'o DummyBlock) -> (bool, &'cx mut Cx) {
         match self {
             BlockType::Block(e) => e.is_match(cx, &other.0)
-        }
-    }
-}
-
-impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyLitIntType> for LitIntType<'cx, 'o, Cx, DummyAst> {
-    fn is_match(&self, cx: &'cx mut Cx, other: &'o DummyLitIntType) -> (bool, &'cx mut Cx) {
-        match (self, other) {
-            (LitIntType::Signed(i), DummyLitIntType::Signed(j)) => i.is_match(cx, j),
-            (LitIntType::Unsigned(i), DummyLitIntType::Unsigned(j)) => i.is_match(cx, j),
-            (LitIntType::Unsuffixed, DummyLitIntType::Unsuffixed) => (true, cx),
-            // no match otherwise
-            (LitIntType::Signed(_), _) |
-            (LitIntType::Unsigned(_), _) |
-            (LitIntType::Unsuffixed, _) => (false, cx)
-        }
-    }
-}
-
-impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyIntTy> for IntTy {
-    fn is_match(&self, cx: &'cx mut Cx, other: &'o DummyIntTy) -> (bool, &'cx mut Cx) {
-        match (self, other) {
-            (IntTy::Isize, DummyIntTy::Isize) |
-            (IntTy::I8, DummyIntTy::I8) |
-            (IntTy::I16, DummyIntTy::I16) |
-            (IntTy::I32, DummyIntTy::I32) |
-            (IntTy::I64, DummyIntTy::I64) |
-            (IntTy::I128, DummyIntTy::I128) => (true, cx),
-            // no match otherwise
-            (IntTy::Isize, _) |
-            (IntTy::I8, _) |
-            (IntTy::I16, _) |
-            (IntTy::I32, _) |
-            (IntTy::I64, _) |
-            (IntTy::I128, _) => (false, cx)
-        }
-    }
-}
-
-impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, DummyUintTy> for UintTy {
-    fn is_match(&self, cx: &'cx mut Cx, other: &'o DummyUintTy) -> (bool, &'cx mut Cx) {
-        match (self, other) {
-            (UintTy::Usize, DummyUintTy::Usize) |
-            (UintTy::U8, DummyUintTy::U8) |
-            (UintTy::U16, DummyUintTy::U16) |
-            (UintTy::U32, DummyUintTy::U32) |
-            (UintTy::U64, DummyUintTy::U64) |
-            (UintTy::U128, DummyUintTy::U128) => (true, cx),
-            // no match otherwise
-            (UintTy::Usize, _) |
-            (UintTy::U8, _) |
-            (UintTy::U16, _) |
-            (UintTy::U32, _) |
-            (UintTy::U64, _) |
-            (UintTy::U128, _) => (false, cx),
         }
     }
 }

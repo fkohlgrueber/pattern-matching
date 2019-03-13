@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 pattern-tree = { path = "../pattern-tree" }
+is-match-macro = { path = "../is-match-macro" }
 itertools = "0.8.0"
 
 [lib]
