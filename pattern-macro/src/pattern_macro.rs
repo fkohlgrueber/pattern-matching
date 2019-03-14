@@ -26,12 +26,53 @@ struct PatTy {
     ty: Ty
 }
 
+/// Checks whether the pattern `input` contains pattern-func calls (lowercase function calls)
+fn needs_expansion(input: &ParseTree) -> Option<String> {
+    match input {
+        ParseTree::Node(id, args) => {
+            let s = id.to_string();
+            if s.chars().next().unwrap().is_lowercase() {
+                Some(s)
+            } else {
+                for arg in args {
+                    let n = needs_expansion(arg);
+                    if n.is_some() {
+                        return n;
+                    }
+                }
+                None
+            }
+        },
+        ParseTree::Alt(a, b) => needs_expansion(a).or_else(|| needs_expansion(b)),
+        ParseTree::Named(e, _id) => needs_expansion(e),
+        ParseTree::Lit(_) |
+        ParseTree::Any |
+        ParseTree::Empty => None,
+        ParseTree::Seq(a, b) => needs_expansion(a).or_else(|| needs_expansion(b)),
+        ParseTree::Repeat(e, _r) => needs_expansion(e),
+    }
+}
+
+
 
 #[proc_macro]
 pub fn pattern(item: TokenStream) -> TokenStream {
-    
+
+    //println!("---------------\n{}", item);
+
+    let item_orig = proc_macro2::TokenStream::from(item.clone());
     // parse the pattern
     let Pattern { name, ty, repeat_ty, node } = syn::parse_macro_input!(item as Pattern);
+
+    // if the pattern contains unresolved pattern functions, expand those
+    if let Some(s) = needs_expansion(&node) {
+        let ident = proc_macro2::Ident::new(&s, proc_macro2::Span::call_site());
+        return quote!(
+            #ident !{
+                #item_orig
+            }
+        ).into()
+    }
 
     // wrap parsed pattern with named `root` so that the pattern result struct has at least one item
     let node = ParseTree::Named(Box::new(node), proc_macro2::Ident::new("root", proc_macro2::Span::call_site()));

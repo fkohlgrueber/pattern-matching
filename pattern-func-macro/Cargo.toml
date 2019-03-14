@@ -1,0 +1,15 @@
+[package]
+name = "pattern-func-macro"
+version = "0.1.0"
+authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
+edition = "2018"
+
+[dependencies]
+quote = "0.6"
+syn = {version = "0.15", features = ["full", "extra-traits"]}
+proc-macro2 = "0.4.26"
+
+[lib]
+proc-macro = true
+path = "src/pattern_func_macro.rs"
+doctest = false

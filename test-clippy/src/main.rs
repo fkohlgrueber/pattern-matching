@@ -44,13 +44,15 @@ impl LintPass for CollapsibleIf {
     }
 }
 
+use pattern_func_lib::expr_or_semi;
+use pattern_func_lib::if_or_if_let;
+
 pattern!{
     pat_if_without_else: Expr = 
         If(
             _#check,
             Block(
-                Expr( If(_#check_inner, _#content, ())#inner )
-                | Semi( If(_#check_inner, _#content, ())#inner ) 
+                expr_or_semi( If(_#check_inner, _#content, ())#inner )
             )#then, 
             ()
         )
@@ -58,22 +60,11 @@ pattern!{
 
 pattern!{
     pat_if_else: Expr = 
-        If(
-            _, 
-            _, 
-            Block_(
-                Block(
-                    Expr((If(_, _, _?) | IfLet(_, _?))#else_) | 
-                    Semi((If(_, _, _?) | IfLet(_, _?))#else_)
-                )#block_inner
-            )#block
-        ) |
-        IfLet(
+        if_or_if_let(
             _, 
             Block_(
                 Block(
-                    Expr((If(_, _, _?) | IfLet(_, _?))#else_) | 
-                    Semi((If(_, _, _?) | IfLet(_, _?))#else_)
+                    expr_or_semi( if_or_if_let(_, _?)#else_ )
                 )#block_inner
             )#block
         )

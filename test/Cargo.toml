@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 pattern = { path = "../pattern" }
+pattern-func-lib = { path = "../pattern-func-lib" }
 
 [lib]
 doctest = false
