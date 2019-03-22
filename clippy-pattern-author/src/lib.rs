@@ -1,6 +1,8 @@
 use yew::{html, Component, ComponentLink, Html, Renderable, ShouldRender};
 
 mod clippy_pattern_author;
+mod editor;
+use editor::Editor;
 
 pub struct Model {
     result: String,
@@ -34,17 +36,8 @@ impl Renderable<Model> for Model {
     fn view(&self) -> Html<Self> {
         html! {
             <div>
-                <textarea rows=25,
-                        style="width:45%;", 
-                        oninput=|e| Msg::GotInput(e.value),
-                        placeholder="enter a Rust expression here",>
-                </textarea>
-                <textarea rows=25,
-                        style="width:45%;", 
-                        placeholder="output",>
-                    { &self.result }
-                </textarea>
-
+                <Editor: oninput=|e| Msg::GotInput(e), />
+                <Editor: value={ &self.result }, />
             </div>
         }
     }
