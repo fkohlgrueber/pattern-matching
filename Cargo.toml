@@ -12,5 +12,6 @@ members = [
     "is-match-macro",
     "pattern-func-macro",
     "pattern-func-lib",
-    "pattern-func"
+    "pattern-func",
+    "clippy-pattern-author"
 ]
