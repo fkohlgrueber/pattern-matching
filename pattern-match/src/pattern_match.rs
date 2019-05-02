@@ -12,7 +12,7 @@ use itertools::Itertools;
 use itertools::repeat_n;
 
 use crate::matchers::*;
-use crate::pattern_tree::PatternTreeNode;
+use ::pattern_tree::PatternTreeNode;
 
 impl IsMatchEquality for u128 {}
 impl IsMatchEquality for char {}

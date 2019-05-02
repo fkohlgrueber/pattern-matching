@@ -167,12 +167,25 @@ pub fn pattern_tree(input: TokenStream) -> TokenStream {
                 pub use super:: #enum_names ::*;
             )*
         }
-    );    
+    );
+
+    // generate MatchAssociations Struct
+    let match_associations_struct = pattern_tree_def.iter().map(|x| {
+        let name = &x.name;
+        quote!(
+            type #name: 'o + std::fmt::Debug + Clone;
+        )
+    }).collect::<Vec<_>>();
 
     quote!(
         #(#enums)*
         #types
         #exports
+
+        pub trait MatchAssociations<'o> 
+        where Self: Sized + Clone {
+            #(#match_associations_struct)*
+        }
     ).into()
 }
 
@@ -205,6 +218,9 @@ fn pt_node_to_tokens(cx: &std::collections::HashMap<String, PatternTreeNode>, no
         {
             #(#variants),*
         }
+
+        // implementation of the PatternTreeNode trait
+        impl #generic_params ::pattern_tree::PatternTreeNode for #name #generic_params #where_clause {}
     )
 }
 
