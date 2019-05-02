@@ -47,7 +47,7 @@ fn gen_tmp_result_struct(name: &Ident, named_subpattern_types: &HashMap<Ident, P
 
         // impl new() on the struct
         impl<'o, A> #name<'o, A> 
-        where A: pattern::pattern_match::pattern_tree::MatchAssociations<'o> {
+        where A: pattern::pattern_match::pattern_tree_rust::MatchAssociations<'o> {
             fn new() -> #name<'o, A> {
                 #name {
                     #(#struct_init_items),*
@@ -90,7 +90,7 @@ fn gen_final_result_struct(tmp_name: &Ident, final_name: &Ident, named_subpatter
 
         // used to convert tmp struct into final struct
         impl<'o, A> From<#tmp_name<'o, A>> for #final_name<'o, A>
-        where A: pattern::pattern_match::pattern_tree::MatchAssociations<'o> {
+        where A: pattern::pattern_match::pattern_tree_rust::MatchAssociations<'o> {
             fn from(cx: #tmp_name<'o, A>) -> Self {
                 #final_name {
                     #(#struct_init_items),*
@@ -106,7 +106,7 @@ fn gen_result_struct(name: &Ident, items: &[proc_macro2::TokenStream], is_pub: b
     quote!(
         #[derive(Debug, Clone)]
         #is_pub_tok struct #name<'o, A>
-        where A: pattern::pattern_match::pattern_tree::MatchAssociations<'o> {
+        where A: pattern::pattern_match::pattern_tree_rust::MatchAssociations<'o> {
             #(#items),*
         }
     )

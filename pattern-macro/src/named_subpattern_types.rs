@@ -4,7 +4,7 @@ use crate::parse::RepeatKind;
 use std::collections::HashMap;
 use syn::Ident;
 use crate::PatTy;
-use pattern_match::pattern_tree;
+use pattern_match::pattern_tree_rust;
 use std::cmp::max;
 use syn::Error;
 
@@ -26,7 +26,7 @@ fn try_insert(hm: HashMap<Ident, PatTy>, res: &mut HashMap<Ident, PatTy>) -> Res
 pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Result<HashMap<Ident, PatTy>, syn::Error> {
     match input {
         ParseTree::Node(id, args) => {
-            let tys = pattern_tree::TYPES
+            let tys = pattern_tree_rust::TYPES
                 .get(id.to_string().as_str())
                 .ok_or_else(|| Error::new_spanned(id, "Unknown Node!"))?;
             if tys.len() != args.len() { 

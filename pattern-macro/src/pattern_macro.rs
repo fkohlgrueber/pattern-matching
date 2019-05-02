@@ -18,7 +18,7 @@ use crate::parse::Pattern;
 use crate::result_struct::gen_result_structs;
 
 use common::Ty;
-use pattern_match::pattern_tree::TYPES;
+use pattern_match::pattern_tree_rust::TYPES;
 
 #[derive(Debug, Clone)]
 struct PatTy {
@@ -104,9 +104,9 @@ pub fn pattern(item: TokenStream) -> TokenStream {
         // matching function
         fn #name <'o, A, P> (node: &'o P) -> Option<#struct_name<'o, A>> 
         where 
-            A: pattern::pattern_match::pattern_tree::MatchAssociations<'o, Expr=P>,
+            A: pattern::pattern_match::pattern_tree_rust::MatchAssociations<'o, Expr=P>,
             P: std::fmt::Debug + std::clone::Clone,
-            for<'cx> pattern::pattern_match::pattern_tree::Expr<'cx, 'o, #struct_tmp_name<'o, A>, A>: pattern::pattern_match::IsMatch<
+            for<'cx> pattern::pattern_match::pattern_tree_rust::Expr<'cx, 'o, #struct_tmp_name<'o, A>, A>: pattern::pattern_match::IsMatch<
                 'cx, 
                 'o, 
                 #struct_tmp_name<'o, A>, 
@@ -116,10 +116,10 @@ pub fn pattern(item: TokenStream) -> TokenStream {
             use pattern::pattern_match::IsMatch;
 
             // initialize the pattern
-            let pattern: pattern::pattern_match::matchers::#repeat_ty<
+            let pattern: pattern::matchers::#repeat_ty<
                 '_, 
                 '_, 
-                pattern::pattern_match::pattern_tree::Expr<
+                pattern::pattern_match::pattern_tree_rust::Expr<
                     '_, 
                     '_, 
                     #struct_tmp_name<A>, 
@@ -164,12 +164,12 @@ fn node_to_tokens(ident: &proc_macro2::Ident, args: &[ParseTree], named_types: &
     } else {
         quote!( ( #(#tokens),* ) )
     };
-    quote!(pattern::pattern_match::pattern_tree::variants:: #ident #args)
+    quote!(pattern::pattern_match::pattern_tree_rust::variants:: #ident #args)
 }
 
 
 fn to_tokens_alt(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
-    let matchers = quote!(pattern::pattern_match::matchers);
+    let matchers = quote!(pattern::matchers);
     match parse_tree {
         ParseTree::Any => quote!(#matchers::Alt::Any),
         ParseTree::Alt(a, b) => {
@@ -205,7 +205,7 @@ fn to_tokens_alt(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) ->
 
 #[allow(clippy::panic_params)]
 fn to_tokens_opt(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
-    let matchers = quote!(pattern::pattern_match::matchers);
+    let matchers = quote!(pattern::matchers);
     match parse_tree {
         ParseTree::Any => quote!(#matchers::Opt::Any),
         ParseTree::Alt(a, b) => {
@@ -247,7 +247,7 @@ fn to_tokens_opt(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) ->
 }
 
 fn to_tokens_seq(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
-    let matchers = quote!(pattern::pattern_match::matchers);
+    let matchers = quote!(pattern::matchers);
     match parse_tree {
         ParseTree::Any => quote!(#matchers::Seq::Any),
         ParseTree::Alt(a, b) => {

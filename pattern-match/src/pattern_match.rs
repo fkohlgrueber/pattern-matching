@@ -4,15 +4,15 @@ extern crate syntax;
 extern crate rustc_data_structures;
 
 pub mod ast_match;
-pub mod pattern_tree;
-pub mod matchers;
+pub mod pattern_tree_rust;
 pub mod dummy_ast_match;
 
 use itertools::Itertools;
 use itertools::repeat_n;
 
-use crate::matchers::*;
-use ::pattern_tree::PatternTreeNode;
+pub use pattern_tree;
+use pattern_tree::matchers::*;
+use pattern_tree::PatternTreeNode;
 
 impl IsMatchEquality for u128 {}
 impl IsMatchEquality for char {}

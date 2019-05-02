@@ -1,8 +1,6 @@
 
 use pattern_tree::pattern_tree;
 
-use crate::matchers::*;
-
 pattern_tree!{
     Expr = Lit(Lit)
         | Array(Expr*)

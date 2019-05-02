@@ -1,5 +1,5 @@
 
-use crate::pattern_tree::*;
+use crate::pattern_tree_rust::*;
 use crate::{IsMatch, Reduce, ReduceSelf};
 use syntax::ast;
 

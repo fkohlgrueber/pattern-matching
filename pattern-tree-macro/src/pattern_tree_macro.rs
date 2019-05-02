@@ -244,17 +244,17 @@ fn pt_arg_to_tokens(cx: &std::collections::HashMap<String, PatternTreeNode>, arg
             let repeat = &arg.ty;
             let assoc_ty = &arg.assoc_ty;
             if assoc && has_args {
-                quote!(#repeat<'cx, 'o, #assoc_ty<'cx, 'o, Cx, A>, Cx, A::#assoc_ty>)
+                quote!(::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty<'cx, 'o, Cx, A>, Cx, A::#assoc_ty>)
             } else if has_args {
-                quote!(#repeat<'cx, 'o, #assoc_ty<'cx, 'o, Cx>, Cx, A::#assoc_ty>)
+                quote!(::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty<'cx, 'o, Cx>, Cx, A::#assoc_ty>)
             } else {
-                quote!(#repeat<'cx, 'o, #assoc_ty, Cx, A::#assoc_ty>)
+                quote!(::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty, Cx, A::#assoc_ty>)
             }
         }
         None => {
             let repeat = &arg.ty;
             let assoc_ty = &arg.assoc_ty;
-            quote!(#repeat<'cx, 'o, #assoc_ty, Cx, #assoc_ty>)
+            quote!(::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty, Cx, #assoc_ty>)
         }
     }
 }
