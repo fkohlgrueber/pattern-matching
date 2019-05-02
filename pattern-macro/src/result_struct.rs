@@ -19,11 +19,11 @@ fn gen_tmp_result_struct(name: &Ident, named_subpattern_types: &HashMap<Ident, P
     // items of the struct definition
     let struct_def_items = named_subpattern_types.iter().map(
         |(k, v)| {
-            let e = &v.inner_ty; 
+            let e = quote_type(&v.inner_ty); 
             match &v.ty {
                 Ty::Alt |
-                Ty::Opt => quote!( #k: Option<&'o A::#e> ),
-                Ty::Seq => quote!( #k: Vec<&'o A::#e> ),
+                Ty::Opt => quote!( #k: Option<&'o #e> ),
+                Ty::Seq => quote!( #k: Vec<&'o #e> ),
             }
         }
     ).collect::<Vec<_>>();
@@ -62,11 +62,11 @@ fn gen_final_result_struct(tmp_name: &Ident, final_name: &Ident, named_subpatter
     // items of the struct definition
     let struct_def_items = named_subpattern_types.iter().map(
         |(k, v)| {
-            let e = &v.inner_ty; 
+            let e = quote_type(&v.inner_ty); 
             match &v.ty {
-                Ty::Alt => quote!( pub #k: &'o A::#e ),
-                Ty::Opt => quote!( pub #k: Option<&'o A::#e> ),
-                Ty::Seq => quote!( pub #k: Vec<&'o A::#e> ),
+                Ty::Alt => quote!( pub #k: &'o #e ),
+                Ty::Opt => quote!( pub #k: Option<&'o #e> ),
+                Ty::Seq => quote!( pub #k: Vec<&'o #e> ),
             }
         }
     ).collect::<Vec<_>>();
@@ -110,4 +110,13 @@ fn gen_result_struct(name: &Ident, items: &[proc_macro2::TokenStream], is_pub: b
             #(#items),*
         }
     )
+}
+
+fn quote_type(e: &proc_macro2::Ident) -> proc_macro2::TokenStream {
+    // Add `A::` prefix to all types except the terminal ones
+    if ["bool", "char", "u128"].contains(&e.to_string().as_str()) {
+        quote!(#e)
+    } else {
+        quote!(A::#e)
+    }
 }

@@ -9,9 +9,6 @@ pub struct Ast {}
 impl<'o> MatchAssociations<'o> for Ast {
     type Expr = ast::Expr;
     type Lit = ast::Lit;
-    type Bool = bool;
-    type Char = char;
-    type Int = u128;
     type Stmt = ast::Stmt;
     type BlockType = ast::Block;
     type LitIntType = ast::LitIntType;

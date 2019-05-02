@@ -73,9 +73,6 @@ pub mod variants {
 impl<'o> MatchAssociations<'o> for DummyAst {
     type Expr = DummyExpr;
     type Lit = DummyLit;
-    type Bool = bool;
-    type Char = char;
-    type Int = u128;
     type Stmt = DummyStmt;
     type BlockType = DummyBlock;
     type LitIntType = DummyLitIntType;

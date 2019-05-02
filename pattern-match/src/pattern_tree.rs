@@ -8,9 +8,6 @@ pub trait MatchAssociations<'o>
 where Self: Sized + Clone {
     type Expr: 'o + Debug + Clone;
     type Lit: 'o + Debug + Clone;
-    type Bool: 'o + Debug + Clone;
-    type Char: 'o + Debug + Clone;
-    type Int: 'o + Debug + Clone;
     type Stmt: 'o + Debug + Clone;
     type BlockType: 'o + Debug + Clone;
     type LitIntType: 'o + Debug + Clone;
@@ -42,14 +39,32 @@ Expr = Lit(Lit)
      | If(Expr, BlockType, Expr?)
      | IfLet(BlockType, Expr?)
 
-Lit = Char(char)
-    | Bool(bool)
-    | Int(u128)
+Lit = Char(CHAR)
+    | Bool(BOOL)
+    | Int(INT, LitIntType)
 
 BlockType = Block(Stmt*)
 
 Stmt = Expr(Expr)
      | Semi(Expr)
+
+LitIntType = Signed(IntTy)
+           | Unsigned(UintTy)
+           | Unsuffixed
+
+IntTy = Isize
+      | I8
+      | I16
+      | I32
+      | I64
+      | I128
+
+UintTy = Usize
+       | U8
+       | U16
+       | U32
+       | U64
+       | U128
 */
 
 
@@ -78,10 +93,10 @@ pattern_tree!{
     where
         A: MatchAssociations<'o>,
     {
-        Char(Alt<'cx, 'o, char, Cx, A::Char>),
-        Bool(Alt<'cx, 'o, bool, Cx, A::Bool>),
+        Char(Alt<'cx, 'o, char, Cx, char>),
+        Bool(Alt<'cx, 'o, bool, Cx, bool>),
         Int(
-            Alt<'cx, 'o, u128, Cx, A::Int>, 
+            Alt<'cx, 'o, u128, Cx, u128>, 
             Alt<'cx, 'o, LitIntType<'cx, 'o, Cx, A>, Cx, A::LitIntType>
         ),
     }
