@@ -5,6 +5,7 @@
 extern crate syntax;
 
 use pattern::pattern;
+use pattern::meta_pattern;
 
 pattern!(
     pat: Expr = 
@@ -166,4 +167,16 @@ fn test_enum_unit_variant() {
     assert!( pat_int_suffix(&ast_node).is_some() );
     assert!( pat_int_suffix(&ast_node_2).is_some() );
     assert!( pat_int_suffix(&ast_node_3).is_none() );
+}
+
+
+meta_pattern!{
+    meta_pat_simple: ParseTree = 
+        Lit(_)
+}
+
+
+#[test]
+fn test_meta_pattern() {
+    
 }

@@ -1,8 +1,9 @@
-#![recursion_limit="256"]
+#![recursion_limit="512"]
+#![feature(rustc_private)]
 use std::collections::HashMap;
 use syn::Ident;
 
-
+extern crate rustc_data_structures;
 extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
@@ -18,7 +19,7 @@ use crate::parse::Pattern;
 use crate::result_struct::gen_result_structs;
 
 use common::Ty;
-use pattern_match::pattern_tree_rust::TYPES;
+use pattern_macro_gen::gen_pattern_macro;
 
 #[derive(Debug, Clone)]
 struct PatTy {
@@ -54,131 +55,65 @@ fn needs_expansion(input: &ParseTree) -> Option<String> {
 }
 
 
-
-#[proc_macro]
-pub fn pattern(item: TokenStream) -> TokenStream {
-
-    //println!("---------------\n{}", item);
-
-    let item_orig = proc_macro2::TokenStream::from(item.clone());
-    // parse the pattern
-    let Pattern { name, ty, repeat_ty, node } = syn::parse_macro_input!(item as Pattern);
-
-    // if the pattern contains unresolved pattern functions, expand those
-    if let Some(s) = needs_expansion(&node) {
-        let ident = proc_macro2::Ident::new(&s, proc_macro2::Span::call_site());
-        return quote!(
-            #ident !{
-                #item_orig
-            }
-        ).into()
-    }
-
-    // wrap parsed pattern with named `root` so that the pattern result struct has at least one item
-    let node = ParseTree::Named(Box::new(node), proc_macro2::Ident::new("root", proc_macro2::Span::call_site()));
-    
-    // name of the result struct is <pattern_name>Struct, e.g. PatStruct
-    let struct_name = proc_macro2::Ident::new(&(name.to_string() + "Struct"), proc_macro2::Span::call_site());
-    
-    // name of the temporary result struct is <pattern_name>TmpStruct, e.g. PatTmpStruct
-    // this struct is used as the context during matching
-    let struct_tmp_name = proc_macro2::Ident::new(&(name.to_string() + "TmpStruct"), proc_macro2::Span::call_site());
-
-    // for each named subpattern, get its type
-    let named_subpattern_types = match get_named_subpattern_types(&node, &ty) {
-        Ok(t) => t,
-        Err(ts) => return ts.to_compile_error().into(),
-    };
-
-
-    // generate the actual pattern structure
-    let tokens = to_tokens(&node, repeat_ty, &named_subpattern_types);
-
-    // generate result structs (and their impls)
-    let result_structs = gen_result_structs(&struct_tmp_name, &struct_name, &named_subpattern_types);
-
-    quote!(
-        // result structs
-        #result_structs
-        
-        // matching function
-        fn #name <'o, A, P> (node: &'o P) -> Option<#struct_name<'o, A>> 
-        where 
-            A: pattern::pattern_match::pattern_tree_rust::MatchAssociations<'o, Expr=P>,
-            P: std::fmt::Debug + std::clone::Clone,
-            for<'cx> pattern::pattern_match::pattern_tree_rust::Expr<'cx, 'o, #struct_tmp_name<'o, A>, A>: pattern::pattern_match::IsMatch<
-                'cx, 
-                'o, 
-                #struct_tmp_name<'o, A>, 
-                P
-            >,
-        {
-            use pattern::pattern_match::IsMatch;
-
-            // initialize the pattern
-            let pattern: pattern::matchers::#repeat_ty<
-                '_, 
-                '_, 
-                pattern::pattern_match::pattern_tree_rust::Expr<
-                    '_, 
-                    '_, 
-                    #struct_tmp_name<A>, 
-                    A
-                >, 
-                #struct_tmp_name<A>, 
-                A::Expr
-            > = #tokens;
-
-            // initialize the result struct
-            let mut cx = #struct_tmp_name::new();
-
-            // match input node against pattern
-            let (r, cx_out) = pattern.is_match(&mut cx, node);
-            
-            if r {
-                // convert cx to final struct and return
-                Some(cx.into())
-            } else {
-                None
-            }
-        }
-    ).into()
+gen_pattern_macro!{
+    pattern => pattern_match::pattern_tree_rust
 }
 
-fn to_tokens(parse_tree: &ParseTree, ty: Ty, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
+gen_pattern_macro!{
+    meta_pattern => pattern_match::pattern_tree_meta
+}
+
+fn to_tokens(
+    parse_tree: &ParseTree, 
+    ty: Ty, 
+    named_types: &HashMap<Ident, PatTy>,
+    types: &rustc_data_structures::fx::FxHashMap<&'static str, Vec<(&'static str, common::Ty)>>,
+    module: &proc_macro2::TokenStream,
+) -> proc_macro2::TokenStream {
     match ty {
-        Ty::Alt => to_tokens_alt(parse_tree, named_types),
-        Ty::Opt => to_tokens_opt(parse_tree, named_types),
-        Ty::Seq => to_tokens_seq(parse_tree, named_types)
+        Ty::Alt => to_tokens_alt(parse_tree, named_types, types, module),
+        Ty::Opt => to_tokens_opt(parse_tree, named_types, types, module),
+        Ty::Seq => to_tokens_seq(parse_tree, named_types, types, module)
     }
 }
 
-fn node_to_tokens(ident: &proc_macro2::Ident, args: &[ParseTree], named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
-    let tys = TYPES.get(ident.to_string().as_str()).expect("Unknown Node");
+fn node_to_tokens(
+    ident: &proc_macro2::Ident, 
+    args: &[ParseTree], 
+    named_types: &HashMap<Ident, PatTy>,
+    types: &rustc_data_structures::fx::FxHashMap<&'static str, Vec<(&'static str, common::Ty)>>,
+    module: &proc_macro2::TokenStream,
+) -> proc_macro2::TokenStream {
+    let tys = types.get(ident.to_string().as_str()).expect("Unknown Node");
     if tys.len() != args.len() { panic!("Wrong number of arguments") }
     let tokens = args.iter().zip(tys.iter()).map(
-        |(e, (_inner_ty, ty))| to_tokens(e, *ty, named_types)
+        |(e, (_inner_ty, ty))| to_tokens(e, *ty, named_types, types, module)
     ).collect::<Vec<_>>();
     let args = if args.is_empty() {
         quote!( )
     } else {
         quote!( ( #(#tokens),* ) )
     };
-    quote!(pattern::pattern_match::pattern_tree_rust::variants:: #ident #args)
+    quote!(pattern::#module::variants:: #ident #args)
 }
 
 
-fn to_tokens_alt(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
+fn to_tokens_alt(
+    parse_tree: &ParseTree, 
+    named_types: &HashMap<Ident, PatTy>,
+    types: &rustc_data_structures::fx::FxHashMap<&'static str, Vec<(&'static str, common::Ty)>>,
+    module: &proc_macro2::TokenStream,
+) -> proc_macro2::TokenStream {
     let matchers = quote!(pattern::matchers);
     match parse_tree {
         ParseTree::Any => quote!(#matchers::Alt::Any),
         ParseTree::Alt(a, b) => {
-            let a_tokens = to_tokens_alt(a, named_types);
-            let b_tokens = to_tokens_alt(b, named_types);
+            let a_tokens = to_tokens_alt(a, named_types, types, module);
+            let b_tokens = to_tokens_alt(b, named_types, types, module);
             quote!(#matchers::Alt::Alt(Box::new(#a_tokens), Box::new(#b_tokens)))
         },
         ParseTree::Node(ident, args) => {
-            let tokens = node_to_tokens(ident, args, named_types);
+            let tokens = node_to_tokens(ident, args, named_types, types, module);
             quote!(#matchers::Alt::Elmt(Box::new(#tokens)))
         },
         ParseTree::Lit(l) => {
@@ -191,7 +126,7 @@ fn to_tokens_alt(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) ->
             } else {
                 quote!( cx.#i = Some(elmt); )
             };
-            let e_tokens = to_tokens_alt(e, named_types);
+            let e_tokens = to_tokens_alt(e, named_types, types, module);
             quote!(
                 #matchers::Alt::Named(
                     Box::new(#e_tokens), 
@@ -204,17 +139,22 @@ fn to_tokens_alt(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) ->
 }
 
 #[allow(clippy::panic_params)]
-fn to_tokens_opt(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
+fn to_tokens_opt(
+    parse_tree: &ParseTree, 
+    named_types: &HashMap<Ident, PatTy>,    
+    types: &rustc_data_structures::fx::FxHashMap<&'static str, Vec<(&'static str, common::Ty)>>,
+    module: &proc_macro2::TokenStream,
+) -> proc_macro2::TokenStream {
     let matchers = quote!(pattern::matchers);
     match parse_tree {
         ParseTree::Any => quote!(#matchers::Opt::Any),
         ParseTree::Alt(a, b) => {
-            let a_tokens = to_tokens_opt(a, named_types);
-            let b_tokens = to_tokens_opt(b, named_types);
+            let a_tokens = to_tokens_opt(a, named_types, types, module);
+            let b_tokens = to_tokens_opt(b, named_types, types, module);
             quote!(#matchers::Opt::Alt(Box::new(#a_tokens), Box::new(#b_tokens)))
         },
         ParseTree::Node(ident, args) => {
-            let tokens = node_to_tokens(ident, args, named_types);
+            let tokens = node_to_tokens(ident, args, named_types, types, module);
             quote!(#matchers::Opt::Elmt(Box::new(#tokens)))
         },
         ParseTree::Lit(l) => {
@@ -227,7 +167,7 @@ fn to_tokens_opt(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) ->
             } else {
                 quote!( cx.#i = Some(elmt); )
             };
-            let e_tokens = to_tokens_opt(e, named_types);
+            let e_tokens = to_tokens_opt(e, named_types, types, module);
             quote!(
                 #matchers::Opt::Named(
                     Box::new(#e_tokens), 
@@ -237,7 +177,7 @@ fn to_tokens_opt(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) ->
         },
         ParseTree::Empty => quote!(#matchers::Opt::None),
         ParseTree::Repeat(e, RepeatKind::Optional) => {
-            let e_tokens = to_tokens_opt(e, named_types);
+            let e_tokens = to_tokens_opt(e, named_types, types, module);
             quote!(#matchers::Opt::Alt(Box::new(#e_tokens), Box::new(#matchers::Opt::None)))
         },
         ParseTree::Repeat(_, _) => 
@@ -246,17 +186,22 @@ fn to_tokens_opt(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) ->
     }
 }
 
-fn to_tokens_seq(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) -> proc_macro2::TokenStream {
+fn to_tokens_seq(
+    parse_tree: &ParseTree, 
+    named_types: &HashMap<Ident, PatTy>,    
+    types: &rustc_data_structures::fx::FxHashMap<&'static str, Vec<(&'static str, common::Ty)>>,
+    module: &proc_macro2::TokenStream,
+) -> proc_macro2::TokenStream {
     let matchers = quote!(pattern::matchers);
     match parse_tree {
         ParseTree::Any => quote!(#matchers::Seq::Any),
         ParseTree::Alt(a, b) => {
-            let a_tokens = to_tokens_seq(a, named_types);
-            let b_tokens = to_tokens_seq(b, named_types);
+            let a_tokens = to_tokens_seq(a, named_types, types, module);
+            let b_tokens = to_tokens_seq(b, named_types, types, module);
             quote!(#matchers::Seq::Alt(Box::new(#a_tokens), Box::new(#b_tokens)))
         },
         ParseTree::Node(ident, args) => {
-            let tokens = node_to_tokens(ident, args, named_types);
+            let tokens = node_to_tokens(ident, args, named_types, types, module);
             quote!(#matchers::Seq::Elmt(Box::new(#tokens)))
         },
         ParseTree::Lit(l) => {
@@ -269,7 +214,7 @@ fn to_tokens_seq(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) ->
             } else {
                 quote!( cx.#i = Some(elmt); )
             };
-            let e_tokens = to_tokens_seq(e, named_types);
+            let e_tokens = to_tokens_seq(e, named_types, types, module);
             quote!(
                 #matchers::Seq::Named(
                     Box::new(#e_tokens), 
@@ -279,7 +224,7 @@ fn to_tokens_seq(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) ->
         },
         ParseTree::Empty => quote!(#matchers::Seq::Empty),
         ParseTree::Repeat(e, r) => {
-            let e_tokens = to_tokens_seq(e, named_types);
+            let e_tokens = to_tokens_seq(e, named_types, types, module);
             let (start, end) = match r {
                 RepeatKind::Any => (quote!(0), quote!(None)),
                 RepeatKind::Plus => (quote!(1), quote!(None)),
@@ -296,8 +241,8 @@ fn to_tokens_seq(parse_tree: &ParseTree, named_types: &HashMap<Ident, PatTy>) ->
             )
         },
         ParseTree::Seq(a, b) => {
-            let a_tokens = to_tokens_seq(a, named_types);
-            let b_tokens = to_tokens_seq(b, named_types);
+            let a_tokens = to_tokens_seq(a, named_types, types, module);
+            let b_tokens = to_tokens_seq(b, named_types, types, module);
             quote!(#matchers::Seq::Seq(Box::new(#a_tokens), Box::new(#b_tokens)))
         }
     }

@@ -207,6 +207,7 @@ pub fn pattern_tree(input: TokenStream) -> TokenStream {
         );
     }
 
+    let tokens = 
     quote!(
         #(#enums)*
         #types
@@ -217,7 +218,10 @@ pub fn pattern_tree(input: TokenStream) -> TokenStream {
             #(#match_associations_struct)*
             //type STR: 'o + std::fmt::Debug + Clone;
         }
-    ).into()
+    );
+
+    println!("{}\n\n\n", tokens.to_string());
+    tokens.into()
 }
 
 fn pt_node_to_tokens(cx: &std::collections::HashMap<String, PatternTreeNode>, node: &PatternTreeNode) -> proc_macro2::TokenStream {
