@@ -11,6 +11,8 @@ use rustc::lint::*;
 use rustc_driver::driver;
 
 use pattern::pattern;
+use pattern::meta_pattern;
+use pattern_parse::parse_pattern_str;
 
 mod utils;
 
@@ -190,6 +192,51 @@ impl EarlyLintPass for StringPattern {
     }
 }
 
+declare_lint! {
+    pub PRE_LINT,
+    Forbid,
+    "pre expansion lint"
+}
+pub struct PreLint;
+
+impl LintPass for PreLint {
+    fn get_lints(&self) -> LintArray {
+        lint_array!(PRE_LINT)
+    }
+
+    fn name(&self) -> &'static str {
+        "PreLint"
+    }
+}
+
+meta_pattern!{
+    pre_lint: ParseTree = 
+        Alt(_, Any_) | Alt(Any_, _)
+}
+
+impl EarlyLintPass for PreLint {
+    fn check_mac(&mut self, cx: &EarlyContext, mac: &syntax::ast::Mac) {
+        if mac.node.path != "pattern" {
+            return;
+        }
+        match parse_pattern_str(&mac.node.tts.to_string()) {
+            Ok(pattern) => match pre_lint(&pattern.node) {
+                Some(_res) => {
+                    //let inner = res.a;
+                    //let outer = res.b;
+                    cx.span_lint(
+                        PRE_LINT,
+                        mac.span,
+                        "One side of the pattern has no effect because _ matches averything.",
+                    );
+                },
+                None => ()
+            },
+            _ => ()
+        }
+    }
+}
+
 
 pub fn main() {
     let args: Vec<_> = std::env::args().collect();
@@ -200,6 +247,7 @@ pub fn main() {
             ls.register_early_pass(None, false, false, box SimplePattern);
             ls.register_early_pass(None, false, false, box StringPattern);
             ls.register_early_pass(None, false, false, box CollapsibleIf);
+            ls.register_pre_expansion_pass(None, false, false, box PreLint);
         });
         rustc_driver::run_compiler(&args, Box::new(compiler), None, None)
     });
