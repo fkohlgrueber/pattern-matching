@@ -12,8 +12,14 @@ use syn::punctuated::Punctuated;
 struct IsMatchImpl {
     pattern_tree_node: syn::Ident,
     syntax_tree_node: syn::Path,
-    match_associations_type: Option<syn::Ident>,
+    match_associations_type: MatchAssociationsType,
     variants: Vec<Variant>
+}
+
+enum MatchAssociationsType {
+    None, // c-style structs
+    Simple, // at least one variant has parameters, but no args depend on MatchAssociations
+    Some(syn::Ident) // use MatchAssociations
 }
 
 struct Variant {
@@ -70,9 +76,12 @@ impl Parse for IsMatchImpl {
         let match_associations_type = if input.peek(syn::Ident) {
             let match_associations_type = input.parse()?;
             input.parse::<Token![=>]>()?;
-            Some(match_associations_type)
+            MatchAssociationsType::Some(match_associations_type)
+        } else if input.peek(Token![=>]) {
+            input.parse::<Token![=>]>()?;
+            MatchAssociationsType::Simple
         } else {
-            None
+            MatchAssociationsType::None
         };
         let mut variants = vec!();
         let content;
@@ -162,8 +171,9 @@ pub fn derive_is_match_impl(input: TokenStream) -> TokenStream {
         }).collect::<Vec<_>>();
     
     let pattern_tree_node_params = match match_associations_type {
-        Some(t) => quote!( <'cx, 'o, Cx, #t> ),
-        None => quote!()
+        MatchAssociationsType::Some(t) => quote!( <'cx, 'o, Cx, #t> ),
+        MatchAssociationsType::Simple => quote!( <'cx, 'o, Cx> ),
+        MatchAssociationsType::None => quote!()
     };
 
     quote!(

@@ -29,7 +29,7 @@ impl Precedence {
 }
 
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct Pattern {
     pub name: Ident,
     pub ty: syn::Ident,
@@ -38,7 +38,7 @@ pub struct Pattern {
 }
 
 #[allow(clippy::module_name_repetitions)]
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum ParseTree {
     Node(Ident, Vec<ParseTree>),
     Alt(Box<ParseTree>, Box<ParseTree>),
@@ -50,7 +50,7 @@ pub enum ParseTree {
     Empty // matches the empty sequence `()`
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone)]
 pub enum RepeatKind {
     Any,
     Plus,
@@ -136,6 +136,10 @@ impl Parse for ParseTree {
     fn parse(input: ParseStream) -> Result<Self> {
         ambiguous_expr(input)
     }
+}
+
+pub fn parse_pattern_str(s: &str) -> Result<Pattern> {
+    syn::parse_str::<Pattern>(s)
 }
 
 // Parse an arbitrary expression.

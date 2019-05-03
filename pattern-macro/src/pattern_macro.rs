@@ -8,14 +8,13 @@ extern crate proc_macro;
 use proc_macro::TokenStream;
 use quote::quote;
 
-mod parse;
 mod result_struct;
 mod named_subpattern_types;
 
 use crate::named_subpattern_types::get_named_subpattern_types;
-use crate::parse::ParseTree;
-use crate::parse::RepeatKind;
-use crate::parse::Pattern;
+use pattern_parse::ParseTree;
+use pattern_parse::RepeatKind;
+use pattern_parse::Pattern;
 use crate::result_struct::gen_result_structs;
 
 use common::Ty;

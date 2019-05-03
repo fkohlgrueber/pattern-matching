@@ -6,6 +6,7 @@ extern crate syntax;
 
 use pattern::pattern;
 use pattern::meta_pattern;
+use pattern_parse::parse_pattern_str;
 
 pattern!(
     pat: Expr = 
@@ -172,11 +173,45 @@ fn test_enum_unit_variant() {
 
 meta_pattern!{
     meta_pat_simple: ParseTree = 
-        Lit(_)
+        Node(_, _*)
 }
 
 
 #[test]
 fn test_meta_pattern() {
-    
+    let pattern = parse_pattern_str("test_pat: Expr = Lit(Bool(true))").unwrap();
+
+    assert!(meta_pat_simple(&pattern.node).is_some())
+}
+
+meta_pattern!{
+    meta_pat_complicated_range: ParseTree = 
+        Repeat_(_, Range(0, 1))
+}
+
+#[test]
+fn test_meta_pattern_complicated_range() {
+    let pattern = parse_pattern_str("test_pat: Expr = Lit(Bool(true)){0, 1}").unwrap();
+
+    assert!(meta_pat_complicated_range(&pattern.node).is_some());
+
+    let pattern = parse_pattern_str("test_pat: Expr = Lit(Bool(true)){0, 2}").unwrap();
+    assert!(meta_pat_complicated_range(&pattern.node).is_none());
+}
+
+meta_pattern!{
+    meta_pat_any_or: ParseTree = 
+        Alt(Any_, _) | Alt(_, Any_)
+}
+
+#[test]
+fn test_meta_pattern_any_or() {
+    let pattern1 = parse_pattern_str("test_pat: Expr = _|Lit(_)").unwrap();
+    let pattern2 = parse_pattern_str("test_pat: Expr = Lit(_)|_").unwrap();
+
+    assert!(meta_pat_any_or(&pattern1.node).is_some());
+    assert!(meta_pat_any_or(&pattern2.node).is_some());
+
+    let pattern = parse_pattern_str("test_pat: Expr = ()|Lit(_)").unwrap();
+    assert!(meta_pat_any_or(&pattern.node).is_none());
 }

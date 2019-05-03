@@ -1,6 +1,6 @@
 use common::Ty;
-use crate::parse::ParseTree;
-use crate::parse::RepeatKind;
+use pattern_parse::ParseTree;
+use pattern_parse::RepeatKind;
 use std::collections::HashMap;
 use syn::Ident;
 use crate::PatTy;

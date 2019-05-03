@@ -14,5 +14,6 @@ members = [
     "pattern-func-lib",
     "pattern-func",
     #"clippy-pattern-author"
-    "pattern-macro-gen"
+    "pattern-macro-gen",
+    "pattern-parse"
 ]

@@ -1,22 +1,24 @@
 use pattern_tree::pattern_tree;
 
+type STR = &'static str;
+
 pattern_tree!{
-    ParseTree = Node(String, ParseTree*)
+    ParseTree = Node(STR<>Ident, ParseTree*)
               | Alt(ParseTree, ParseTree)
               | Seq(ParseTree, ParseTree)
-              | Repeat(ParseTree, RepeatKind)
-              | Named(ParseTree, String)
+              | Repeat_(ParseTree, RepeatKind)
+              | Named(ParseTree, STR<>Ident)
               | Lit(Lit)
-              | Any
+              | Any_
               | Empty
     
     RepeatKind = Any
                | Plus
                | Optional
-               | Range(u128, u128?)
-               | Repeat(u128)
+               | Range(u128<>LitInt, u128?<>LitInt)
+               | Repeat(u128<>LitInt)
 
-    Lit = Bool(bool)
-        | Int(u128)
-        | Char(char)
+    Lit = Bool(bool<>LitBool)
+        | Int(u128<>LitInt)
+        | Char(char<>LitChar)
 }

@@ -31,7 +31,7 @@ impl PatternTreeNode {
         // if any argument contains a type that's not a terminal type, the node needs to have the generic parameter `A`.
         for variant in &self.variants {
             for arg in &variant.args {
-                if cx.contains_key(&arg.assoc_ty.to_string()) {
+                if cx.contains_key(&arg.assoc_ty.to_string()) || arg.custom_assoc_ty.is_some() {
                     return true;
                 }
             }
@@ -220,7 +220,7 @@ pub fn pattern_tree(input: TokenStream) -> TokenStream {
         }
     );
 
-    println!("{}\n\n\n", tokens.to_string());
+    //println!("{}\n\n\n", tokens.to_string());
     tokens.into()
 }
 
