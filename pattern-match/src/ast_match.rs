@@ -14,6 +14,7 @@ impl<'o> MatchAssociations<'o> for Ast {
     type LitIntType = ast::LitIntType;
     type IntTy = ast::IntTy;
     type UintTy = ast::UintTy;
+    type Symbol = syntax::source_map::symbol::Symbol;
 }
 
 use is_match_macro::derive_is_match_impl;
@@ -40,6 +41,14 @@ derive_is_match_impl!{
         Char(i) <> Char(i)
         Bool(i) <> Bool(i)
         Int(n, suffix) <> Int(n, suffix)
+        Str(s) <> Str(s, _style)
+    }
+}
+
+impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, syntax::source_map::symbol::Symbol> for &'static str
+{
+    fn is_match(&self, cx: &'cx mut Cx, other: &syntax::source_map::symbol::Symbol) -> (bool, &'cx mut Cx) {
+        (self == &other.as_str().get(), cx)
     }
 }
 

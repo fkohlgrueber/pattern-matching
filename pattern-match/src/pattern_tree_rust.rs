@@ -1,5 +1,6 @@
 
 use pattern_tree::pattern_tree;
+type STR = &'static str;
 
 pattern_tree!{
     Expr = Lit(Lit)
@@ -11,6 +12,7 @@ pattern_tree!{
     Lit = Char(char)
         | Bool(bool)
         | Int(u128, LitIntType)
+        | Str(STR<>Symbol)
 
     BlockType = Block(Stmt*)
 

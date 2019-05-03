@@ -22,15 +22,16 @@ struct PatternTreeVariant {
 #[derive(Clone, Debug)]
 struct PatternTreeArg {
     ty: Ty,
-    assoc_ty: syn::Ident
+    assoc_ty: syn::Ident,
+    custom_assoc_ty: Option<syn::Ident>
 }
 
 impl PatternTreeNode {
-    fn uses_assoc_types(&self) -> bool {
+    fn uses_assoc_types(&self, cx: &std::collections::HashMap<String, PatternTreeNode>) -> bool {
         // if any argument contains a type that's not a terminal type, the node needs to have the generic parameter `A`.
         for variant in &self.variants {
             for arg in &variant.args {
-                if !["bool", "char", "u128"].contains(&arg.assoc_ty.to_string().as_str()) {
+                if cx.contains_key(&arg.assoc_ty.to_string()) {
                     return true;
                 }
             }
@@ -107,6 +108,7 @@ impl Parse for PatternTreeArg {
     fn parse(input: ParseStream) -> Result<Self> {
         let assoc_ty = input.parse()?;
         
+        // parse repetition
         let ty = if input.peek(Token![*]) {
             input.parse::<Token![*]>()?;
             Ty::Seq
@@ -116,11 +118,21 @@ impl Parse for PatternTreeArg {
         } else {
             Ty::Alt
         };
+
+        // parse custom associated type name
+        let custom_assoc_ty = if input.peek(Token![<]) {
+            input.parse::<Token![<]>()?;
+            input.parse::<Token![>]>()?;
+            Some(input.parse()?)
+        } else {
+            None
+        };
         
         Ok(
             PatternTreeArg {
                 ty,
-                assoc_ty
+                assoc_ty,
+                custom_assoc_ty
             }
         )
     }
@@ -145,7 +157,12 @@ pub fn pattern_tree(input: TokenStream) -> TokenStream {
         |x| {
             let name = &x.name;
             let args = x.args.iter().map(|x| &x.ty).collect::<Vec<_>>();
-            let args_id = x.args.iter().map(|x| &x.assoc_ty).collect::<Vec<_>>();
+            let args_id = x.args.iter().map(|x| 
+                match &x.custom_assoc_ty {
+                    Some(ty) => &ty,
+                    None => &x.assoc_ty
+                }
+            ).collect::<Vec<_>>();
             quote!( p.insert(stringify!(#name), vec!(#( (stringify!(#args_id), pattern_tree::Ty::#args) ),*)); )
         }
     ).collect::<Vec<_>>();
@@ -170,12 +187,25 @@ pub fn pattern_tree(input: TokenStream) -> TokenStream {
     );
 
     // generate MatchAssociations Struct
-    let match_associations_struct = pattern_tree_def.iter().map(|x| {
+    let mut match_associations_struct = pattern_tree_def.iter().map(|x| {
         let name = &x.name;
         quote!(
             type #name: 'o + std::fmt::Debug + Clone;
         )
     }).collect::<Vec<_>>();
+
+    let custom_assoc_types = pattern_tree_def.iter()
+        .flat_map(|x| &x.variants)
+        .flat_map(|x| &x.args)
+        .filter_map(|x| x.custom_assoc_ty.clone())
+        .collect::<std::collections::HashSet<_>>();
+    for ident in custom_assoc_types {
+        match_associations_struct.push(
+            quote!(
+                type #ident: 'o + std::fmt::Debug + Clone;
+            )
+        );
+    }
 
     quote!(
         #(#enums)*
@@ -185,13 +215,14 @@ pub fn pattern_tree(input: TokenStream) -> TokenStream {
         pub trait MatchAssociations<'o> 
         where Self: Sized + Clone {
             #(#match_associations_struct)*
+            //type STR: 'o + std::fmt::Debug + Clone;
         }
     ).into()
 }
 
 fn pt_node_to_tokens(cx: &std::collections::HashMap<String, PatternTreeNode>, node: &PatternTreeNode) -> proc_macro2::TokenStream {
     let name = &node.name;
-    let assoc = node.uses_assoc_types();
+    let assoc = node.uses_assoc_types(cx);
     let has_args = node.has_args();
     
     let generic_params = if assoc && has_args {
@@ -237,24 +268,40 @@ fn pt_variant_to_tokens(cx: &std::collections::HashMap<String, PatternTreeNode>,
 
 fn pt_arg_to_tokens(cx: &std::collections::HashMap<String, PatternTreeNode>, arg: &PatternTreeArg) -> proc_macro2::TokenStream {
     
+    /*if arg.assoc_ty.to_string() == "STR" {
+        let repeat = &arg.ty;
+        let assoc_ty = &arg.assoc_ty;
+        return quote!(
+            ::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty, Cx, A::#assoc_ty>
+        );
+    }*/
+
     match cx.get(&arg.assoc_ty.to_string()) {
         Some(e) => {
-            let assoc = e.uses_assoc_types();
+            let assoc = e.uses_assoc_types(cx);
             let has_args = e.has_args();
             let repeat = &arg.ty;
             let assoc_ty = &arg.assoc_ty;
+            let custom_assoc_ty = match &arg.custom_assoc_ty {
+                Some(e) => &e,
+                None => &arg.assoc_ty,
+            };
             if assoc && has_args {
-                quote!(::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty<'cx, 'o, Cx, A>, Cx, A::#assoc_ty>)
+                quote!(::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty<'cx, 'o, Cx, A>, Cx, A::#custom_assoc_ty>)
             } else if has_args {
-                quote!(::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty<'cx, 'o, Cx>, Cx, A::#assoc_ty>)
+                quote!(::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty<'cx, 'o, Cx>, Cx, A::#custom_assoc_ty>)
             } else {
-                quote!(::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty, Cx, A::#assoc_ty>)
+                quote!(::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty, Cx, A::#custom_assoc_ty>)
             }
         }
         None => {
             let repeat = &arg.ty;
             let assoc_ty = &arg.assoc_ty;
-            quote!(::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty, Cx, #assoc_ty>)
+            let custom_assoc_ty = match &arg.custom_assoc_ty {
+                Some(e) => quote!(A::#e),
+                None => quote!(#assoc_ty),
+            };
+            quote!(::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty, Cx, #custom_assoc_ty>)
         }
     }
 }

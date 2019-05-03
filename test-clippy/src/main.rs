@@ -149,6 +149,47 @@ impl EarlyLintPass for SimplePattern {
     }
 }
 
+declare_lint! {
+    pub STRING_PATTERN,
+    Forbid,
+    "simple pattern lint"
+}
+pub struct StringPattern;
+
+impl LintPass for StringPattern {
+    fn get_lints(&self) -> LintArray {
+        lint_array!(STRING_PATTERN)
+    }
+
+    fn name(&self) -> &'static str {
+        "StringPattern"
+    }
+}
+
+pattern!{
+    pat_string: Expr = 
+        Lit(Str("abcdef"#a)#b)
+}
+
+impl EarlyLintPass for StringPattern {
+    fn check_expr(&mut self, cx: &EarlyContext, expr: &syntax::ast::Expr) {
+        
+        match pat_string(expr) {
+            Some(_res) => {
+                //let inner = res.a;
+                //let outer = res.b;
+                cx.span_lint(
+                    STRING_PATTERN,
+                    expr.span,
+                    "This is a match for the string pattern. Well Done too!",
+                );
+            },
+            None => ()
+        }
+        
+    }
+}
+
 
 pub fn main() {
     let args: Vec<_> = std::env::args().collect();
@@ -157,6 +198,7 @@ pub fn main() {
         compiler.after_parse.callback = Box::new(move |state| {
             let mut ls = state.session.lint_store.borrow_mut();
             ls.register_early_pass(None, false, false, box SimplePattern);
+            ls.register_early_pass(None, false, false, box StringPattern);
             ls.register_early_pass(None, false, false, box CollapsibleIf);
         });
         rustc_driver::run_compiler(&args, Box::new(compiler), None, None)

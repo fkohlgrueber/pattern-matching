@@ -17,6 +17,7 @@ pub enum DummyLit {
     Char(char),
     Bool(bool),
     Int(u128, DummyLitIntType),
+    Str(String)
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -78,6 +79,7 @@ impl<'o> MatchAssociations<'o> for DummyAst {
     type LitIntType = DummyLitIntType;
     type IntTy = DummyIntTy;
     type UintTy = DummyUintTy;
+    type Symbol = String;
 }
 
 // Dummy Ast IsMatch implementations
@@ -107,6 +109,14 @@ derive_is_match_impl!{
         Char(i) <> Char(i)
         Bool(i) <> Bool(i)
         Int(n, suffix) <> Int(n, suffix)
+        Str(s) <> Str(s)
+    }
+}
+
+
+impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, String> for &'static str {
+    fn is_match(&self, cx: &'cx mut Cx, other: &'o String) -> (bool, &'cx mut Cx) {
+        (self == &other.as_str(), cx)
     }
 }
 

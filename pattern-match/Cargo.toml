@@ -8,6 +8,7 @@ edition = "2018"
 pattern-tree = { path = "../pattern-tree" }
 is-match-macro = { path = "../is-match-macro" }
 itertools = "0.8.0"
+syn = {version = "0.15", features = ["full", "extra-traits"]}
 
 [lib]
 path = "src/pattern_match.rs"

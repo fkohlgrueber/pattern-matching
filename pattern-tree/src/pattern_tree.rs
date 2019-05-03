@@ -11,3 +11,4 @@ pub trait PatternTreeNode {}
 impl PatternTreeNode for char {}
 impl PatternTreeNode for u128 {}
 impl PatternTreeNode for bool {}
+impl PatternTreeNode for &'static str {}
