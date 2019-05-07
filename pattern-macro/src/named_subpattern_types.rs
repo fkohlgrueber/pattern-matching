@@ -31,7 +31,7 @@ pub(crate) fn get_named_subpattern_types(
         ParseTree::Node(id, args) => {
             let tys = types
                 .get(id.to_string().as_str())
-                .ok_or_else(|| Error::new_spanned(id, "Unknown Node!"))?;
+                .ok_or_else(|| Error::new_spanned(id, format!("Unknown Node `{}`!", id.to_string())))?;
             if tys.len() != args.len() { 
                 return Err(Error::new_spanned(
                     id, 

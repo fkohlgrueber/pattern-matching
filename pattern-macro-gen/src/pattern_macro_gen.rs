@@ -39,6 +39,8 @@ pub fn gen_pattern_macro(item: TokenStream) -> TokenStream {
 
             //println!("---------------\n{}", item);
 
+            let pattern_name = proc_macro2::Ident::new(stringify!(#name), proc_macro2::Span::call_site());
+
             let item_orig = proc_macro2::TokenStream::from(item.clone());
             // parse the pattern
             let Pattern { name, ty, repeat_ty, node } = syn::parse_macro_input!(item as Pattern);
@@ -48,6 +50,7 @@ pub fn gen_pattern_macro(item: TokenStream) -> TokenStream {
                 let ident = proc_macro2::Ident::new(&s, proc_macro2::Span::call_site());
                 return quote!(
                     #hash ident !{
+                        #hash pattern_name 
                         #hash item_orig
                     }
                 ).into()

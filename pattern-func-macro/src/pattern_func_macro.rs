@@ -79,6 +79,8 @@ pub fn pattern_func(input: TokenStream) -> TokenStream {
             let body = #body;
             
             let mut tokens_iter = input.into_iter();
+            let pattern_name = pattern_func::proc_macro2::TokenStream::from(proc_macro::TokenStream::from(tokens_iter.next().unwrap()));
+
             let pre = {
                 let mut p = proc_macro::TokenStream::new();
                 p.extend(tokens_iter.by_ref().take_while(|x| !pattern_func::is_equals(x)));
@@ -93,7 +95,7 @@ pub fn pattern_func(input: TokenStream) -> TokenStream {
             let out = pattern_func::proc_macro2::TokenStream::from(pattern_func::replace(pattern, name, &args, body));
 
             pattern_func::quote!(
-                pattern!{
+                #hash pattern_name !{
                     #hash pre = 
                         #hash out
                 }

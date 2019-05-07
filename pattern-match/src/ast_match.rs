@@ -3,6 +3,8 @@ use crate::pattern_tree_rust::*;
 use crate::{IsMatch, Reduce, ReduceSelf};
 use syntax::ast;
 
+use is_match_macro::derive_is_match_impl;
+
 #[derive(Debug, Clone)]
 pub struct Ast {}
 
@@ -16,8 +18,6 @@ impl<'o> MatchAssociations<'o> for Ast {
     type UintTy = ast::UintTy;
     type Symbol = syntax::source_map::symbol::Symbol;
 }
-
-use is_match_macro::derive_is_match_impl;
 
 derive_is_match_impl!{
     Expr <> ast::ExprKind => Ast => {

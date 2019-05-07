@@ -168,6 +168,8 @@ impl LintPass for StringPattern {
     }
 }
 
+use pattern_func_lib::alternative;
+
 pattern!{
     pat_string: Expr = 
         Lit(Str("abcdef"#a)#b)
@@ -211,7 +213,8 @@ impl LintPass for PreLint {
 
 meta_pattern!{
     pre_lint: ParseTree = 
-        Alt(_, Any_) | Alt(Any_, _)
+        alternative(_, Any_)
+        // Alt(_, Any_) | Alt(Any_, _)
 }
 
 impl EarlyLintPass for PreLint {

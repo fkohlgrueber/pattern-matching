@@ -14,3 +14,9 @@ pattern_func!{
         If(_, $then, $else_) | IfLet($then, $else_)
     }
 }
+
+pattern_func!{
+    fn alternative($a, $b) {
+        Alt($a, $b) | Alt($b, $a)
+    }
+}
