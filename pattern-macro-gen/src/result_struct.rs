@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use common::Ty;
 
 
-pub(crate) fn gen_result_structs(
+pub fn gen_result_structs(
     tmp_name: &Ident, 
     final_name: &Ident, 
     named_subpattern_types: &HashMap<Ident, PatTy>,

@@ -22,7 +22,7 @@ fn try_insert(hm: HashMap<Ident, PatTy>, res: &mut HashMap<Ident, PatTy>) -> Res
 }
 
 /// Traverses a `ParseTree` and builds a Hashmap containing the types of all named subpatterns.
-pub(crate) fn get_named_subpattern_types(
+pub fn get_named_subpattern_types(
     input: &ParseTree, 
     ty: &Ident, 
     types: &rustc_data_structures::fx::FxHashMap<&'static str, Vec<(&'static str, common::Ty)>>
