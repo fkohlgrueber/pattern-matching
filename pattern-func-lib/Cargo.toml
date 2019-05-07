@@ -5,6 +5,7 @@ authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+
 pattern-func = { path = "../pattern-func" }
 
 

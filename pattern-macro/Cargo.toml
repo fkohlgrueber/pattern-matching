@@ -5,13 +5,15 @@ authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+syn = {version = "0.15", features = ["full", "extra-traits"]}
+quote = "0.6"
+proc-macro2 = "0.4.26"
+
 common = { path = "../common" }
 pattern-match = { path = "../pattern-match" }
 pattern-parse = { path = "../pattern-parse" }
 pattern-macro-gen = { path = "../pattern-macro-gen" }
-syn = {version = "0.15", features = ["full", "extra-traits"]}
-quote = "0.6"
-proc-macro2 = "0.4.26"
+
 
 [lib]
 proc-macro = true

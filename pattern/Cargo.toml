@@ -5,6 +5,7 @@ authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
 
 [dependencies]
+
 pattern-macro = { path = "../pattern-macro" }
 pattern-match = { path = "../pattern-match" }
 
