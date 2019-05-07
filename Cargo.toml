@@ -13,7 +13,7 @@ members = [
     "pattern-func-macro",
     "pattern-func-lib",
     "pattern-func",
-    #"clippy-pattern-author"
+    "clippy-pattern-author",
     "pattern-macro-gen",
     "pattern-parse",
     "pattern-macro-gen-macro"

@@ -216,7 +216,6 @@ pub fn pattern_tree(input: TokenStream) -> TokenStream {
         pub trait MatchAssociations<'o> 
         where Self: Sized + Clone {
             #(#match_associations_struct)*
-            //type STR: 'o + std::fmt::Debug + Clone;
         }
     );
 
@@ -271,15 +270,6 @@ fn pt_variant_to_tokens(cx: &std::collections::HashMap<String, PatternTreeNode>,
 }
 
 fn pt_arg_to_tokens(cx: &std::collections::HashMap<String, PatternTreeNode>, arg: &PatternTreeArg) -> proc_macro2::TokenStream {
-    
-    /*if arg.assoc_ty.to_string() == "STR" {
-        let repeat = &arg.ty;
-        let assoc_ty = &arg.assoc_ty;
-        return quote!(
-            ::pattern_tree::matchers::#repeat<'cx, 'o, #assoc_ty, Cx, A::#assoc_ty>
-        );
-    }*/
-
     match cx.get(&arg.assoc_ty.to_string()) {
         Some(e) => {
             let assoc = e.uses_assoc_types(cx);
