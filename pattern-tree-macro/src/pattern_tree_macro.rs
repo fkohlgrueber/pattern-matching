@@ -150,6 +150,7 @@ pub fn pattern_tree(input: TokenStream) -> TokenStream {
         pt_hashmap.insert(node.name.to_string(), node.clone());
     }
     
+    // generate enums
     let enums = pattern_tree_def.iter().map(|x| pt_node_to_tokens(&pt_hashmap, x)).collect::<Vec<_>>();
 
     // generate type information struct
