@@ -12,6 +12,7 @@ use rustc_driver::driver;
 
 use pattern::pattern;
 use pattern::meta_pattern;
+use pattern::pattern_mini;
 use pattern_parse::parse_pattern_str;
 
 mod utils;
@@ -195,6 +196,54 @@ impl EarlyLintPass for StringPattern {
 }
 
 declare_lint! {
+    pub MINI_PATTERN,
+    Forbid,
+    "mini pattern lint"
+}
+pub struct MiniPattern;
+
+impl LintPass for MiniPattern {
+    fn get_lints(&self) -> LintArray {
+        lint_array!(MINI_PATTERN)
+    }
+
+    fn name(&self) -> &'static str {
+        "MiniPattern"
+    }
+}
+
+pattern_mini!{
+    pat_mini: Expr = 
+        If(
+            Lit(Bool(true)),
+            Block(
+                Semi(Lit(Bool(true)))? 
+                expr_or_semi(Lit(Char('x')))
+            ), 
+            Block_(Block(Expr(Lit(Char('y')))))
+        )
+}
+
+impl EarlyLintPass for MiniPattern {
+    fn check_expr(&mut self, cx: &EarlyContext, expr: &syntax::ast::Expr) {
+        
+        match pat_mini(expr) {
+            Some(_res) => {
+                //let inner = res.a;
+                //let outer = res.b;
+                cx.span_lint(
+                    MINI_PATTERN,
+                    expr.span,
+                    "This is a match for the mini pattern. Well Done too!",
+                );
+            },
+            None => ()
+        }
+        
+    }
+}
+
+declare_lint! {
     pub PRE_LINT,
     Forbid,
     "pre expansion lint"
@@ -250,6 +299,7 @@ pub fn main() {
             ls.register_early_pass(None, false, false, box SimplePattern);
             ls.register_early_pass(None, false, false, box StringPattern);
             ls.register_early_pass(None, false, false, box CollapsibleIf);
+            ls.register_early_pass(None, false, false, box MiniPattern);
             ls.register_pre_expansion_pass(None, false, false, box PreLint);
         });
         rustc_driver::run_compiler(&args, Box::new(compiler), None, None)

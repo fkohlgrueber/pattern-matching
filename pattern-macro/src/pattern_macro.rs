@@ -13,3 +13,7 @@ gen_pattern_macro!{
 gen_pattern_macro!{
     meta_pattern => pattern_match::pattern_tree_meta
 }
+
+gen_pattern_macro!{
+    pattern_mini => pattern_match::pattern_tree_rust_mini
+}
