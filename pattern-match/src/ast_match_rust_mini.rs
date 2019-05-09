@@ -1,6 +1,6 @@
 
 use crate::pattern_tree_rust_mini::*;
-use crate::{IsMatch, Reduce, ReduceSelf};
+use crate::IsMatch;
 use syntax::ast;
 
 use is_match_macro::derive_is_match_impl;

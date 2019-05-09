@@ -15,7 +15,7 @@ fn try_insert(hm: HashMap<Ident, PatTy>, res: &mut HashMap<Ident, PatTy>) -> Res
                 k, "Multiple occurrences of the same variable aren't allowed!"
             ))
         }
-        res.insert(k, v).is_some();
+        res.insert(k, v);
     }
 
     Ok(())
