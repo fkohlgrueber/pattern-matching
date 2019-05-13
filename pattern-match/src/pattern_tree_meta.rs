@@ -1,8 +1,8 @@
-use pattern_tree::pattern_tree;
+use pattern_tree::gen_pattern_tree;
 
 type STR = &'static str;
 
-pattern_tree!{
+gen_pattern_tree!{
     ParseTree = Node(STR<>Ident, ParseTree*)
               | Alt(ParseTree, ParseTree)
               | Seq(ParseTree, ParseTree)

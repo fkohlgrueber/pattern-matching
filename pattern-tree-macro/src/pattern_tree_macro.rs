@@ -140,7 +140,7 @@ impl Parse for PatternTreeArg {
 
 
 #[proc_macro]
-pub fn pattern_tree(input: TokenStream) -> TokenStream {
+pub fn gen_pattern_tree(input: TokenStream) -> TokenStream {
     // parse input
     let pattern_tree_def = syn::parse_macro_input!(input as PatternTree).0;
 

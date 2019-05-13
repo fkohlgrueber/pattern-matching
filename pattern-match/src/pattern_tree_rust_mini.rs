@@ -1,7 +1,7 @@
 
-use pattern_tree::pattern_tree;
+use pattern_tree::gen_pattern_tree;
 
-pattern_tree!{
+gen_pattern_tree!{
     Expr = Lit(Lit)
          | Array(Expr*)
          | If(Expr, BlockType, Expr?)

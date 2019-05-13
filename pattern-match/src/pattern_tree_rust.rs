@@ -1,8 +1,8 @@
 
-use pattern_tree::pattern_tree;
+use pattern_tree::gen_pattern_tree;
 type STR = &'static str;
 
-pattern_tree!{
+gen_pattern_tree!{
     Expr = Lit(Lit)
         | Array(Expr*)
         | Block_(BlockType)
