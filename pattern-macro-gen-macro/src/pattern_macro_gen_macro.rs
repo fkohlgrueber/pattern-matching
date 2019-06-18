@@ -33,7 +33,7 @@ pub fn gen_pattern_macro(item: TokenStream) -> TokenStream {
 
     let GenPatternMacro { name, module } = syn::parse_macro_input!(item as GenPatternMacro);
 
-    quote!(
+    let tokens = quote!(
         #[proc_macro]
         pub fn #name(item: TokenStream) -> TokenStream {
 
@@ -48,12 +48,14 @@ pub fn gen_pattern_macro(item: TokenStream) -> TokenStream {
             // if the pattern contains unresolved pattern functions, expand those
             if let Some(s) = pattern_macro_gen::needs_expansion(&node) {
                 let ident = pattern_macro_gen::proc_macro2::Ident::new(&s, pattern_macro_gen::proc_macro2::Span::call_site());
-                return pattern_macro_gen::quote!(
+                let tokens = pattern_macro_gen::quote!(
                     #hash ident !{
                         #hash pattern_name 
                         #hash item_orig
                     }
-                ).into()
+                );
+                println!("Needs_expansion: \n\n {}\n\n\n", tokens.to_string());
+                return tokens.into();
             }
 
             // wrap parsed pattern with named `root` so that the pattern result struct has at least one item
@@ -125,9 +127,12 @@ pub fn gen_pattern_macro(item: TokenStream) -> TokenStream {
                     }
                 }
             );
-            //println!("{}\n\n\n", tokens.clone().to_string());
+            //println!("Pattern {}\n\n\n", tokens.clone().to_string());
             tokens.into()
         }
-    ).into()
+    );
+    
+    //println!("MacroGen: \n\n{}\n\n\n", tokens.to_string());
+    tokens.into()
 }
 

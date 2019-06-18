@@ -176,7 +176,7 @@ pub fn derive_is_match_impl(input: TokenStream) -> TokenStream {
         MatchAssociationsType::None => quote!()
     };
 
-    quote!(
+    let tokens = quote!(
         impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, #syntax_tree_node> for #pattern_tree_node #pattern_tree_node_params {
             fn is_match(&self, cx: &'cx mut Cx, other: &'o #syntax_tree_node) -> (bool, &'cx mut Cx) {
                 match (self, other) {
@@ -185,7 +185,10 @@ pub fn derive_is_match_impl(input: TokenStream) -> TokenStream {
                 }
             }
         }
-    ).into()
+    );
+    
+    //println!("IsMatchImpl: \n\n{}\n\n\n", tokens.to_string());
+    tokens.into()
 }
 
 /*

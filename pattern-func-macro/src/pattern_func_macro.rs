@@ -70,7 +70,7 @@ pub fn pattern_func(input: TokenStream) -> TokenStream {
 
     let hash = proc_macro2::TokenTree::Punct(proc_macro2::Punct::new('#', proc_macro2::Spacing::Alone));
 
-    quote!(
+    let tokens = quote!(
         #[proc_macro]
         pub fn #name(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
             
@@ -94,15 +94,19 @@ pub fn pattern_func(input: TokenStream) -> TokenStream {
 
             let out = pattern_func::proc_macro2::TokenStream::from(pattern_func::replace(pattern, name, &args, body));
 
-            pattern_func::quote!(
+            let tokens = pattern_func::quote!(
                 #hash pattern_name !{
                     #hash pre = 
                         #hash out
                 }
-            ).into()
+            );
+            println!("Expanded to: \n\n {}\n\n\n", tokens.to_string());
+            tokens.into()
         }
         
-    ).into()
+    );
+    //println!("Pattern_func: \n\n {}\n\n\n", tokens.clone().to_string());
+    tokens.into()
 }
 
 /*
