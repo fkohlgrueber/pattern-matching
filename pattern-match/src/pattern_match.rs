@@ -1,22 +1,28 @@
 #![feature(rustc_private)]
+#![feature(box_syntax)]
 
 extern crate syntax;
 extern crate rustc_data_structures;
 
 pub mod ast_match;
-pub mod pattern_tree;
-pub mod matchers;
+pub mod ast_match_rust_mini;
+pub mod pattern_tree_rust;
+pub mod pattern_tree_rust_mini;
+pub mod pattern_tree_meta;
+pub mod meta_match;
 pub mod dummy_ast_match;
 
 use itertools::Itertools;
 use itertools::repeat_n;
 
-use crate::matchers::*;
-use crate::pattern_tree::PatternTreeNode;
+pub use pattern_tree;
+use pattern_tree::matchers::*;
+use pattern_tree::PatternTreeNode;
 
 impl IsMatchEquality for u128 {}
 impl IsMatchEquality for char {}
 impl IsMatchEquality for bool {}
+impl IsMatchEquality for &'static str {}
 
 // Main trait for matching
 pub trait IsMatch<'cx, 'o, Cx: Clone, O: ?Sized> {

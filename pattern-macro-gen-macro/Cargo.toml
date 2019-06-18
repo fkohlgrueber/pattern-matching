@@ -1,18 +1,16 @@
 [package]
-name = "pattern-tree-macro"
+name = "pattern-macro-gen-macro"
 version = "0.1.0"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-quote = "0.6"
 syn = {version = "0.15", features = ["full", "extra-traits"]}
+quote = "0.6"
 proc-macro2 = "0.4.26"
-lazy_static = "1.2.0"
 
-common = { path = "../common" }
 
 [lib]
 proc-macro = true
-path = "src/pattern_tree_macro.rs"
+path = "src/pattern_macro_gen_macro.rs"
 doctest = false

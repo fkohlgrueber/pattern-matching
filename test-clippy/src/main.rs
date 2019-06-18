@@ -11,6 +11,9 @@ use rustc::lint::*;
 use rustc_driver::driver;
 
 use pattern::pattern;
+use pattern::meta_pattern;
+use pattern::pattern_mini;
+use pattern_parse::parse_pattern_str;
 
 mod utils;
 
@@ -44,13 +47,15 @@ impl LintPass for CollapsibleIf {
     }
 }
 
+use pattern_func_lib::expr_or_semi;
+use pattern_func_lib::if_or_if_let;
+
 pattern!{
     pat_if_without_else: Expr = 
         If(
             _#check,
             Block(
-                Expr( If(_#check_inner, _#content, ())#inner )
-                | Semi( If(_#check_inner, _#content, ())#inner ) 
+                expr_or_semi( If(_#check_inner, _#content, ())#inner )
             )#then, 
             ()
         )
@@ -58,22 +63,11 @@ pattern!{
 
 pattern!{
     pat_if_else: Expr = 
-        If(
-            _, 
-            _, 
-            Block_(
-                Block(
-                    Expr((If(_, _, _?) | IfLet(_, _?))#else_) | 
-                    Semi((If(_, _, _?) | IfLet(_, _?))#else_)
-                )#block_inner
-            )#block
-        ) |
-        IfLet(
+        if_or_if_let(
             _, 
             Block_(
                 Block(
-                    Expr((If(_, _, _?) | IfLet(_, _?))#else_) | 
-                    Semi((If(_, _, _?) | IfLet(_, _?))#else_)
+                    expr_or_semi( if_or_if_let(_, _?)#else_ )
                 )#block_inner
             )#block
         )
@@ -158,6 +152,143 @@ impl EarlyLintPass for SimplePattern {
     }
 }
 
+declare_lint! {
+    pub STRING_PATTERN,
+    Forbid,
+    "simple pattern lint"
+}
+pub struct StringPattern;
+
+impl LintPass for StringPattern {
+    fn get_lints(&self) -> LintArray {
+        lint_array!(STRING_PATTERN)
+    }
+
+    fn name(&self) -> &'static str {
+        "StringPattern"
+    }
+}
+
+use pattern_func_lib::alternative;
+
+pattern!{
+    pat_string: Expr = 
+        Lit(Str("abcdef"#a)#b)
+}
+
+impl EarlyLintPass for StringPattern {
+    fn check_expr(&mut self, cx: &EarlyContext, expr: &syntax::ast::Expr) {
+        
+        match pat_string(expr) {
+            Some(_res) => {
+                //let inner = res.a;
+                //let outer = res.b;
+                cx.span_lint(
+                    STRING_PATTERN,
+                    expr.span,
+                    "This is a match for the string pattern. Well Done too!",
+                );
+            },
+            None => ()
+        }
+        
+    }
+}
+
+declare_lint! {
+    pub MINI_PATTERN,
+    Forbid,
+    "mini pattern lint"
+}
+pub struct MiniPattern;
+
+impl LintPass for MiniPattern {
+    fn get_lints(&self) -> LintArray {
+        lint_array!(MINI_PATTERN)
+    }
+
+    fn name(&self) -> &'static str {
+        "MiniPattern"
+    }
+}
+
+pattern_mini!{
+    pat_mini: Expr = 
+        If(
+            Lit(Bool(true)),
+            Block(
+                Semi(Lit(Bool(true)))? 
+                expr_or_semi(Lit(Char('x')))
+            ), 
+            Block_(Block(Expr(Lit(Char('y')))))
+        )
+}
+
+impl EarlyLintPass for MiniPattern {
+    fn check_expr(&mut self, cx: &EarlyContext, expr: &syntax::ast::Expr) {
+        
+        match pat_mini(expr) {
+            Some(_res) => {
+                //let inner = res.a;
+                //let outer = res.b;
+                cx.span_lint(
+                    MINI_PATTERN,
+                    expr.span,
+                    "This is a match for the mini pattern. Well Done too!",
+                );
+            },
+            None => ()
+        }
+        
+    }
+}
+
+declare_lint! {
+    pub PRE_LINT,
+    Forbid,
+    "pre expansion lint"
+}
+pub struct PreLint;
+
+impl LintPass for PreLint {
+    fn get_lints(&self) -> LintArray {
+        lint_array!(PRE_LINT)
+    }
+
+    fn name(&self) -> &'static str {
+        "PreLint"
+    }
+}
+
+meta_pattern!{
+    pre_lint: ParseTree = 
+        alternative(_, Any_)
+        // Alt(_, Any_) | Alt(Any_, _)
+}
+
+impl EarlyLintPass for PreLint {
+    fn check_mac(&mut self, cx: &EarlyContext, mac: &syntax::ast::Mac) {
+        if mac.node.path != "pattern" {
+            return;
+        }
+        match parse_pattern_str(&mac.node.tts.to_string()) {
+            Ok(pattern) => match pre_lint(&pattern.node) {
+                Some(_res) => {
+                    //let inner = res.a;
+                    //let outer = res.b;
+                    cx.span_lint(
+                        PRE_LINT,
+                        mac.span,
+                        "One side of the pattern has no effect because _ matches averything.",
+                    );
+                },
+                None => ()
+            },
+            _ => ()
+        }
+    }
+}
+
 
 pub fn main() {
     let args: Vec<_> = std::env::args().collect();
@@ -166,7 +297,10 @@ pub fn main() {
         compiler.after_parse.callback = Box::new(move |state| {
             let mut ls = state.session.lint_store.borrow_mut();
             ls.register_early_pass(None, false, false, box SimplePattern);
+            ls.register_early_pass(None, false, false, box StringPattern);
             ls.register_early_pass(None, false, false, box CollapsibleIf);
+            ls.register_early_pass(None, false, false, box MiniPattern);
+            ls.register_pre_expansion_pass(None, false, false, box PreLint);
         });
         rustc_driver::run_compiler(&args, Box::new(compiler), None, None)
     });

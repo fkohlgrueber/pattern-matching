@@ -1,0 +1,10 @@
+error: This is a match for the string pattern. Well Done too!
+  --> $DIR/string_pattern.rs:3:13
+   |
+LL |     let x = "abcdef";
+   |             ^^^^^^^^
+   |
+   = note: #[forbid(string_pattern)] on by default
+
+error: aborting due to previous error
+

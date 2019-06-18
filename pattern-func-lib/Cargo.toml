@@ -1,15 +1,15 @@
 [package]
-name = "pattern-macro"
+name = "pattern-func-lib"
 version = "0.1.0"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
 
 [dependencies]
 
-pattern-macro-gen = { path = "../pattern-macro-gen" }
-pattern-match = { path = "../pattern-match" }
+pattern-func = { path = "../pattern-func" }
+
 
 [lib]
 proc-macro = true
-path = "src/pattern_macro.rs"
+path = "src/pattern_func_lib.rs"
 doctest = false

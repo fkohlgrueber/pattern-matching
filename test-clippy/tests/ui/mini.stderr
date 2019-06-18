@@ -1,0 +1,27 @@
+error: This is a match for the mini pattern. Well Done too!
+  --> $DIR/mini.rs:2:13
+   |
+LL |       let x = if true {
+   |  _____________^
+LL | |         true;
+LL | |         'x'
+LL | |     } else {
+LL | |         'y'
+LL | |     };
+   | |_____^
+   |
+   = note: #[forbid(mini_pattern)] on by default
+
+error: This is a match for the mini pattern. Well Done too!
+  --> $DIR/mini.rs:9:13
+   |
+LL |       let y = if true {
+   |  _____________^
+LL | |         'x'
+LL | |     } else {
+LL | |         'y'
+LL | |     };
+   | |_____^
+
+error: aborting due to 2 previous errors
+

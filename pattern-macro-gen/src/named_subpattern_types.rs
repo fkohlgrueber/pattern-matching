@@ -1,10 +1,9 @@
 use common::Ty;
-use crate::parse::ParseTree;
-use crate::parse::RepeatKind;
+use pattern_parse::ParseTree;
+use pattern_parse::RepeatKind;
 use std::collections::HashMap;
 use syn::Ident;
 use crate::PatTy;
-use pattern_match::pattern_tree;
 use std::cmp::max;
 use syn::Error;
 
@@ -16,19 +15,23 @@ fn try_insert(hm: HashMap<Ident, PatTy>, res: &mut HashMap<Ident, PatTy>) -> Res
                 k, "Multiple occurrences of the same variable aren't allowed!"
             ))
         }
-        res.insert(k, v).is_some();
+        res.insert(k, v);
     }
 
     Ok(())
 }
 
 /// Traverses a `ParseTree` and builds a Hashmap containing the types of all named subpatterns.
-pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Result<HashMap<Ident, PatTy>, syn::Error> {
+pub fn get_named_subpattern_types(
+    input: &ParseTree, 
+    ty: &Ident, 
+    types: &rustc_data_structures::fx::FxHashMap<&'static str, Vec<(&'static str, common::Ty)>>
+) -> Result<HashMap<Ident, PatTy>, syn::Error> {
     match input {
         ParseTree::Node(id, args) => {
-            let tys = pattern_tree::TYPES
+            let tys = types
                 .get(id.to_string().as_str())
-                .ok_or_else(|| Error::new_spanned(id, "Unknown Node!"))?;
+                .ok_or_else(|| Error::new_spanned(id, format!("Unknown Node `{}`!", id.to_string())))?;
             if tys.len() != args.len() { 
                 return Err(Error::new_spanned(
                     id, 
@@ -41,15 +44,15 @@ pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Resul
             let mut res = HashMap::new();
 
             for (e, (inner_ty, _ty)) in args.iter().zip(tys.iter()) {
-                let hm = get_named_subpattern_types(e, &Ident::new(inner_ty, proc_macro2::Span::call_site()))?;
+                let hm = get_named_subpattern_types(e, &Ident::new(inner_ty, proc_macro2::Span::call_site()), types)?;
                 try_insert(hm, &mut res)?;
             }
 
             Ok(res)
         },
         ParseTree::Alt(a, b) => {
-            let a_hm = get_named_subpattern_types(a, ty)?;
-            let b_hm = get_named_subpattern_types(b, ty)?;
+            let a_hm = get_named_subpattern_types(a, ty, types)?;
+            let b_hm = get_named_subpattern_types(b, ty, types)?;
             let mut res = HashMap::new();
 
             // elmts that are in both hashmaps
@@ -81,7 +84,7 @@ pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Resul
             Ok(res)
         },
         ParseTree::Named(e, id) => {
-            let mut h = get_named_subpattern_types(e, ty)?;
+            let mut h = get_named_subpattern_types(e, ty, types)?;
             
             // inner type (e.g. a pattern_tree node) is provided by parameter (top-down)
             let inner_ty = ty;
@@ -97,15 +100,15 @@ pub(crate) fn get_named_subpattern_types(input: &ParseTree, ty: &Ident) -> Resul
         ParseTree::Any |
         ParseTree::Empty => Ok(HashMap::new()),
         ParseTree::Seq(a, b) => {
-            let mut a_hm = get_named_subpattern_types(a, ty)?;
-            let b_hm = get_named_subpattern_types(b, ty)?;
+            let mut a_hm = get_named_subpattern_types(a, ty, types)?;
+            let b_hm = get_named_subpattern_types(b, ty, types)?;
             
             // add elements from b_hm to a_hm, error for duplicates
             try_insert(b_hm, &mut a_hm)?;
             
             Ok(a_hm)
         },
-        ParseTree::Repeat(e, _r) => get_named_subpattern_types(e, ty),
+        ParseTree::Repeat(e, _r) => get_named_subpattern_types(e, ty, types),
     }
 }
 

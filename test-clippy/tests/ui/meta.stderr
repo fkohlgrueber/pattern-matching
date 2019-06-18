@@ -1,0 +1,31 @@
+error: One side of the pattern has no effect because _ matches averything.
+  --> $DIR/meta.rs:18:1
+   |
+LL | / pattern!{
+LL | |     something: Expr = 
+LL | |         Lit(_) | _
+LL | | }
+   | |_^
+   |
+   = note: #[forbid(pre_lint)] on by default
+
+error: One side of the pattern has no effect because _ matches averything.
+  --> $DIR/meta.rs:23:1
+   |
+LL | / pattern!{
+LL | |     something: Expr = 
+LL | |         _ | Lit(_)
+LL | | }
+   | |_^
+
+error: One side of the pattern has no effect because _ matches averything.
+  --> $DIR/meta.rs:28:1
+   |
+LL | / pattern!{
+LL | |     something: Expr = 
+LL | |         _ | Array(_+ Lit(_){5})
+LL | | }
+   | |_^
+
+error: aborting due to 3 previous errors
+

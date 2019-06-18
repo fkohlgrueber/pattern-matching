@@ -5,8 +5,12 @@ authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-pattern-tree = { path = "../pattern-tree" }
 itertools = "0.8.0"
+syn = {version = "0.15", features = ["full", "extra-traits"]}
+
+pattern-tree = { path = "../pattern-tree" }
+pattern-parse = { path = "../pattern-parse" }
+is-match-macro = { path = "../is-match-macro" }
 
 [lib]
 path = "src/pattern_match.rs"

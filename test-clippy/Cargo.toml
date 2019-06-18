@@ -6,6 +6,8 @@ edition = "2018"
 
 [dependencies]
 pattern = { path = "../pattern" }
+pattern-parse = { path = "../pattern-parse" }
+pattern-func-lib = { path = "../pattern-func-lib" }
 
 [dev-dependencies]
 compiletest_rs = "0.3.19"
