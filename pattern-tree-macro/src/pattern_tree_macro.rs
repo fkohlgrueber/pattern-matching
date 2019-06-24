@@ -253,9 +253,6 @@ fn pt_node_to_tokens(cx: &std::collections::HashMap<String, PatternTreeNode>, no
         {
             #(#variants),*
         }
-
-        // implementation of the PatternTreeNode trait
-        impl #generic_params ::pattern_tree::PatternTreeNode for #name #generic_params #where_clause {}
     )
 }
 
