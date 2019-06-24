@@ -10,10 +10,12 @@ use pattern::meta_pattern;
 use pattern_func_lib::expr_or_semi;
 
 pattern!{
-    my_pattern: Stmt =
-        expr_or_semi(Lit(_))
+    my_pattern: Expr = 
+        Array( 
+            Lit(_)* #literals 
+            Lit(Bool(_))? #boolean
+        )
 }
-
 pattern!(
     pat: Expr = 
         Lit(Bool(_#var)#var2)#var3
