@@ -100,7 +100,7 @@ pub fn pattern_func(input: TokenStream) -> TokenStream {
                         #hash out
                 }
             );
-            println!("Expanded to: \n\n {}\n\n\n", tokens.to_string());
+            //println!("Expanded to: \n\n {}\n\n\n", tokens.to_string());
             tokens.into()
         }
         

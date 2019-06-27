@@ -54,7 +54,7 @@ pub fn gen_pattern_macro(item: TokenStream) -> TokenStream {
                         #hash item_orig
                     }
                 );
-                println!("Needs_expansion: \n\n {}\n\n\n", tokens.to_string());
+                // println!("Needs_expansion: \n\n {}\n\n\n", tokens.to_string());
                 return tokens.into();
             }
 
