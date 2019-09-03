@@ -17,7 +17,6 @@ use itertools::repeat_n;
 
 pub use pattern_tree;
 use pattern_tree::matchers::*;
-use pattern_tree::PatternTreeNode;
 
 impl IsMatchEquality for u128 {}
 impl IsMatchEquality for char {}
@@ -40,7 +39,7 @@ where T: IsMatchEquality {
 }
 
 impl<'cx, 'o, T, U, Cx: Clone> IsMatch<'cx, 'o, Cx, U> for Alt<'cx, 'o, T, Cx, U>
-where T: PatternTreeNode + IsMatch<'cx, 'o, Cx, U> {
+where T: IsMatch<'cx, 'o, Cx, U> {
     fn is_match(&self, cx: &'cx mut Cx, other: &'o U) -> (bool, &'cx mut Cx) {
         match self {
             Alt::Any => (true, cx),
@@ -66,7 +65,7 @@ where T: PatternTreeNode + IsMatch<'cx, 'o, Cx, U> {
 
 impl<'cx, 'o, T, U, V, Cx: Clone> IsMatch<'cx, 'o, Cx, [V]> for Seq<'cx, 'o, T, Cx, U>
 where 
-    T: PatternTreeNode + IsMatch<'cx, 'o, Cx, U>,
+    T: IsMatch<'cx, 'o, Cx, U>,
     V: Reduce<Target=U>
 {
     fn is_match(&self, cx: &'cx mut Cx, other: &'o [V]) -> (bool, &'cx mut Cx) {
@@ -159,7 +158,7 @@ where
 
 impl<'cx, 'o, T, U, V, Cx: Clone> IsMatch<'cx, 'o, Cx, Vec<V>> for Seq<'cx, 'o, T, Cx, U>
 where 
-    T: PatternTreeNode + IsMatch<'cx, 'o, Cx, U>,
+    T: IsMatch<'cx, 'o, Cx, U>,
     V: Reduce<Target=U>
 {
     fn is_match(&self, cx: &'cx mut Cx, other: &'o Vec<V>) -> (bool, &'cx mut Cx) {
@@ -170,7 +169,7 @@ where
 
 impl<'cx, 'o, T, U, V, Cx: Clone> IsMatch<'cx, 'o, Cx, Option<V>> for Opt<'cx, 'o, T, Cx, U>
 where 
-    T: PatternTreeNode + IsMatch<'cx, 'o, Cx, U>,
+    T: IsMatch<'cx, 'o, Cx, U>,
     V: Reduce<Target=U>
 {
     fn is_match(&self, cx: &'cx mut Cx, other: &'o Option<V>) -> (bool, &'cx mut Cx) {
