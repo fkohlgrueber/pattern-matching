@@ -8,13 +8,6 @@ pattern_func!{
     }
 }
 
-
-pattern_func!{
-    fn if_or_if_let($then, $else_) {
-        If(_, $then, $else_) | IfLet($then, $else_)
-    }
-}
-
 pattern_func!{
     fn alternative($a, $b) {
         Alt($a, $b) | Alt($b, $a)

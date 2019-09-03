@@ -17,7 +17,7 @@ pattern!(
         Array( Array(_*#var_inner)* )
 );
 
-
+/*
 #[test]
 fn test() {
     use syntax::ast;
@@ -26,7 +26,12 @@ fn test() {
         span: syntax::source_map::Span::default(),
         id: ast::NodeId::from_usize(0),
         node: ast::ExprKind::Lit(
-            syntax::source_map::Spanned {
+            ast::Lit {
+                token: syntax::parse::token::Lit {
+                    kind: syntax::parse::token::LitKind::Bool,
+                    symbol: syntax::source_map::symbol::Symbol::intern("false"),
+                    suffix: None
+                },
                 span: syntax::source_map::Span::default(),
                 node: ast::LitKind::Bool(false),
             }
@@ -46,7 +51,7 @@ fn test() {
     let res2 = pat(&ast_node);
     dbg!(res2);
 }
-
+*/
 
 #[test]
 fn test_nested() {

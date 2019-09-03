@@ -8,7 +8,7 @@ LL | |         }
 LL | |     }
    | |_____^
    |
-   = note: #[forbid(simple_pattern)] on by default
+   = note: `#[forbid(simple_pattern)]` on by default
 
 error: this if statement can be collapsed
   --> $DIR/collapsible_if.rs:21:5

@@ -4,7 +4,7 @@ error: This is a match for a simple pattern. Well Done!
 LL |     if (false) {
    |         ^^^^^
    |
-   = note: #[forbid(simple_pattern)] on by default
+   = note: `#[forbid(simple_pattern)]` on by default
 
 error: This is a match for a simple pattern. Well Done!
   --> $DIR/simple_pattern.rs:10:13

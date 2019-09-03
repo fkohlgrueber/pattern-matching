@@ -7,7 +7,6 @@ gen_pattern_tree!{
         | Array(Expr*)
         | Block_(BlockType)
         | If(Expr, BlockType, Expr?)
-        | IfLet(BlockType, Expr?)
 
     Lit = Char(char)
         | Bool(bool)

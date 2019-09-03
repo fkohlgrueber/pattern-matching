@@ -7,7 +7,7 @@ LL | |         Lit(_) | _
 LL | | }
    | |_^
    |
-   = note: #[forbid(pre_lint)] on by default
+   = note: `#[forbid(pre_lint)]` on by default
 
 error: One side of the pattern has no effect because _ matches averything.
   --> $DIR/meta.rs:23:1

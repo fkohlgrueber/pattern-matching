@@ -4,11 +4,12 @@
 extern crate rustc;
 extern crate rustc_data_structures;
 extern crate rustc_driver;
+extern crate rustc_interface;
 extern crate syntax;
 
 use rustc::{declare_lint, lint_array};
 use rustc::lint::*;
-use rustc_driver::driver;
+use rustc_interface::interface;
 
 use pattern::pattern;
 use pattern::meta_pattern;
@@ -19,7 +20,7 @@ mod utils;
 
 use syntax::ast;
 
-use crate::utils::{snippet_block, in_macro};
+use crate::utils::snippet_block;
 
 fn block_starts_with_comment(cx: &EarlyContext<'_>, expr: &ast::Block) -> bool {
     // We trim all opening braces and whitespaces and then check if the next string is a comment.
@@ -48,7 +49,6 @@ impl LintPass for CollapsibleIf {
 }
 
 use pattern_func_lib::expr_or_semi;
-use pattern_func_lib::if_or_if_let;
 
 pattern!{
     pat_if_without_else: Expr = 
@@ -63,11 +63,12 @@ pattern!{
 
 pattern!{
     pat_if_else: Expr = 
-        if_or_if_let(
+        If(
+            _, 
             _, 
             Block_(
                 Block(
-                    expr_or_semi( if_or_if_let(_, _?)#else_ )
+                    expr_or_semi( If(_, _, _?)#else_ )
                 )#block_inner
             )#block
         )
@@ -76,7 +77,7 @@ pattern!{
 impl EarlyLintPass for CollapsibleIf {
     fn check_expr(&mut self, cx: &EarlyContext, expr: &syntax::ast::Expr) {
         
-        if in_macro(expr.span) {
+        if expr.span.from_expansion() {
             return;
         }
 
@@ -90,7 +91,7 @@ impl EarlyLintPass for CollapsibleIf {
             }
         }
         if let Some(res) = pat_if_else(expr) {
-            if !block_starts_with_comment(cx, res.block_inner) && !in_macro(res.else_.span){
+            if !block_starts_with_comment(cx, res.block_inner) && !res.else_.span.from_expansion() {
                 cx.span_lint(
                     SIMPLE_PATTERN,
                     res.block.span,
@@ -268,10 +269,10 @@ meta_pattern!{
 
 impl EarlyLintPass for PreLint {
     fn check_mac(&mut self, cx: &EarlyContext, mac: &syntax::ast::Mac) {
-        if mac.node.path != "pattern" {
+        if mac.path.to_string() != "pattern" {
             return;
         }
-        match parse_pattern_str(&mac.node.tts.to_string()) {
+        match parse_pattern_str(&mac.tts.to_string()) {
             Ok(pattern) => match pre_lint(&pattern.node) {
                 Some(_res) => {
                     //let inner = res.a;
@@ -289,19 +290,27 @@ impl EarlyLintPass for PreLint {
     }
 }
 
+struct ClippyCallbacks;
 
+impl rustc_driver::Callbacks for ClippyCallbacks {
+    fn after_parsing(&mut self, compiler: &interface::Compiler) -> rustc_driver::Compilation {
+        let sess = compiler.session();
+        
+        let mut ls = sess.lint_store.borrow_mut();
+        ls.register_early_pass(None, false, false, box SimplePattern);
+        ls.register_early_pass(None, false, false, box StringPattern);
+        ls.register_early_pass(None, false, false, box CollapsibleIf);
+        ls.register_early_pass(None, false, false, box MiniPattern);
+        ls.register_pre_expansion_pass(None, false, false, box PreLint);
+
+        // Continue execution
+        rustc_driver::Compilation::Continue
+    }
+}
+#[allow(unused_must_use)]
 pub fn main() {
     let args: Vec<_> = std::env::args().collect();
-    rustc_driver::run(move || {
-        let mut compiler = driver::CompileController::basic();
-        compiler.after_parse.callback = Box::new(move |state| {
-            let mut ls = state.session.lint_store.borrow_mut();
-            ls.register_early_pass(None, false, false, box SimplePattern);
-            ls.register_early_pass(None, false, false, box StringPattern);
-            ls.register_early_pass(None, false, false, box CollapsibleIf);
-            ls.register_early_pass(None, false, false, box MiniPattern);
-            ls.register_pre_expansion_pass(None, false, false, box PreLint);
-        });
-        rustc_driver::run_compiler(&args, Box::new(compiler), None, None)
+    rustc_driver::report_ices_to_stderr_if_any(move || {
+        rustc_driver::run_compiler(&args, &mut ClippyCallbacks, None, None)
     });
 }

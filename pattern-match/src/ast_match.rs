@@ -25,7 +25,6 @@ derive_is_match_impl!{
         Block_(b) <> Block(b, _label)
         Array(a) <> Array(a)
         If(check, then, else_) <> If(check, then, else_)
-        IfLet(then, else_) <> IfLet(_pattern, _check, then, else_)
     }
 }
 

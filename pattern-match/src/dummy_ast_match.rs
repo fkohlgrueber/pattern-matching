@@ -9,7 +9,7 @@ pub enum DummyExpr {
     Array(Vec<DummyExpr>),
     Block(DummyBlock),
     If(Box<DummyExpr>, DummyBlock, Box<Option<DummyExpr>>),
-    IfLet(DummyBlock, Box<Option<DummyExpr>>)
+    //IfLet(DummyBlock, Box<Option<DummyExpr>>)
 }
 
 #[derive(Debug, PartialEq, Clone)]
@@ -92,7 +92,6 @@ derive_is_match_impl!{
         Block_(b) <> Block(b)
         Array(a) <> Array(a)
         If(check, then, else_) <> If(check, then, else_)
-        IfLet(then, else_) <> IfLet(then, else_)
     }
 }
 
