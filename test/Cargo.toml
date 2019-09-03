@@ -7,7 +7,7 @@ edition = "2018"
 [dependencies]
 pattern = { path = "../pattern" }
 pattern-parse = { path = "../pattern-parse" }
-pattern-func-lib = { path = "../pattern-func-lib" }
+test-pattern-func-lib = { path = "../test-pattern-func-lib" }
 
 [lib]
 doctest = false

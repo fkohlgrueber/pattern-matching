@@ -48,7 +48,7 @@ impl LintPass for CollapsibleIf {
     }
 }
 
-use pattern_func_lib::expr_or_semi;
+use test_pattern_func_lib::expr_or_semi;
 
 pattern!{
     pat_if_without_else: Expr = 
@@ -170,7 +170,7 @@ impl LintPass for StringPattern {
     }
 }
 
-use pattern_func_lib::alternative;
+use test_pattern_func_lib::alternative;
 
 pattern!{
     pat_string: Expr = 

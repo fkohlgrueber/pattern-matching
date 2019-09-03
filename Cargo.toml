@@ -23,5 +23,5 @@ members = [
     
     "test",
     "test-clippy",
-    "pattern-func-lib",
+    "test-pattern-func-lib",
 ]
