@@ -1,5 +1,5 @@
 [package]
-name = "pattern-tree-macro"
+name = "pattern-func-macro"
 version = "0.1.0"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
@@ -8,11 +8,8 @@ edition = "2018"
 quote = "1.0"
 syn = {version = "1.0", features = ["full", "extra-traits"]}
 proc-macro2 = "1.0"
-lazy_static = "1.4.0"
-
-common = { path = "../common" }
 
 [lib]
 proc-macro = true
-path = "src/pattern_tree_macro.rs"
+path = "pattern_func_macro.rs"
 doctest = false

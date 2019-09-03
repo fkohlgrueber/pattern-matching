@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 
-pattern-macro = { path = "../pattern-macro" }
+pattern-macro = { path = "pattern-macro" }
 pattern-match = { path = "../pattern-match" }
 
 [lib]

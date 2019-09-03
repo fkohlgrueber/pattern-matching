@@ -6,10 +6,10 @@ edition = "2018"
 
 [dependencies]
 
-pattern-macro-gen = { path = "../pattern-macro-gen" }
-pattern-match = { path = "../pattern-match" }
+pattern-macro-gen = { path = "../../pattern-macro-gen" }
+pattern-match = { path = "../../pattern-match" }
 
 [lib]
 proc-macro = true
-path = "src/pattern_macro.rs"
+path = "pattern_macro.rs"
 doctest = false

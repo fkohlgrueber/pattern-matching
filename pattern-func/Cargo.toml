@@ -9,7 +9,7 @@ itertools = "0.8.0"
 proc-macro2 = "1.0"
 quote = "1.0"
 
-pattern-func-macro = { path = "../pattern-func-macro" }
+pattern-func-macro = { path = "pattern-func-macro" }
 
 [lib]
 path = "src/pattern_func.rs"

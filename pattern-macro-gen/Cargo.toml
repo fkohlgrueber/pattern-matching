@@ -11,7 +11,7 @@ proc-macro2 = "1.0"
 
 common = { path = "../common" }
 pattern-parse = { path = "../pattern-parse" }
-pattern-macro-gen-macro = { path = "../pattern-macro-gen-macro" }
+pattern-macro-gen-macro = { path = "pattern-macro-gen-macro" }
 
 
 [lib]

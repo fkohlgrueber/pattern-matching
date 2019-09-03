@@ -8,7 +8,7 @@ edition = "2018"
 lazy_static = "1.4.0"
 
 common = { path = "../common" }
-pattern-tree-macro = { path = "../pattern-tree-macro" }
+pattern-tree-macro = { path = "pattern-tree-macro" }
 
 [lib]
 path = "src/pattern_tree.rs"

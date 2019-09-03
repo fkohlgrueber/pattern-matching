@@ -2,19 +2,26 @@
 
 members = [
     "common",
-    "pattern-tree-macro",
+    
+    "is-match-macro",
+    
     "pattern-tree",
+    "pattern-tree/pattern-tree-macro",
+    
     "pattern-match",
-    "pattern-macro",
+    
+    "pattern-parse",
+
     "pattern",
+    "pattern/pattern-macro",
+
+    "pattern-macro-gen",
+    "pattern-macro-gen/pattern-macro-gen-macro",
+    
+    "pattern-func",
+    "pattern-func/pattern-func-macro",
+    
     "test",
     "test-clippy",
-    "is-match-macro",
-    "pattern-func-macro",
     "pattern-func-lib",
-    "pattern-func",
-    #"clippy-pattern-author",
-    "pattern-macro-gen",
-    "pattern-parse",
-    "pattern-macro-gen-macro"
 ]

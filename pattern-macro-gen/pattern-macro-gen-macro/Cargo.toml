@@ -1,5 +1,5 @@
 [package]
-name = "pattern-func-macro"
+name = "pattern-macro-gen-macro"
 version = "0.1.0"
 authors = ["Felix Kohlgrüber <felix.kohlgrueber@gmail.com>"]
 edition = "2018"
@@ -9,7 +9,8 @@ quote = "1.0"
 syn = {version = "1.0", features = ["full", "extra-traits"]}
 proc-macro2 = "1.0"
 
+
 [lib]
 proc-macro = true
-path = "src/pattern_func_macro.rs"
+path = "pattern_macro_gen_macro.rs"
 doctest = false
