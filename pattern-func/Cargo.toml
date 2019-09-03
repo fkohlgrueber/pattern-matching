@@ -6,8 +6,8 @@ edition = "2018"
 
 [dependencies]
 itertools = "0.8.0"
-proc-macro2 = "0.4.26"
-quote = "0.6"
+proc-macro2 = "1.0"
+quote = "1.0"
 
 pattern-func-macro = { path = "../pattern-func-macro" }
 

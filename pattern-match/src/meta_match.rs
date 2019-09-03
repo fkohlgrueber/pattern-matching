@@ -51,7 +51,10 @@ derive_is_match_impl!{
 impl<'cx, 'o, Cx: Clone> IsMatch<'cx, 'o, Cx, syn::LitInt> for u128
 {
     fn is_match(&self, cx: &'cx mut Cx, other: &syn::LitInt) -> (bool, &'cx mut Cx) {
-        (self == &(other.value() as u128), cx)
+        match other.base10_parse() {
+            Ok(n) => (self == &n, cx),
+            Err(_) => (false, cx)
+        }
     }
 }
 

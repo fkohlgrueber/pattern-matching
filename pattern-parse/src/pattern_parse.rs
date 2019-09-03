@@ -72,10 +72,10 @@ impl fmt::Display for ParseTree {
                 RepeatKind::Plus => "+".to_string(),
                 RepeatKind::Optional => "?".to_string(),
                 RepeatKind::Range(f, t) => format!("{{{}{}}}", 
-                    f.value(),
-                    t.as_ref().map_or("".to_string(), |t| format!(",{}", t.value()))
+                    f.base10_digits(),
+                    t.as_ref().map_or("".to_string(), |t| format!(",{}", t.base10_digits()))
                 ),
-                RepeatKind::Repeat(r) => format!("{{{}}}", r.value())
+                RepeatKind::Repeat(r) => format!("{{{}}}", r.base10_digits())
             }),
             ParseTree::Named(e, i) => write!(f, "{}#{}", e, i),
             ParseTree::Lit(_e) => write!(f, "<expr>"),
@@ -280,7 +280,7 @@ mod tests {
     }
 
     fn int_lit(input: u64) -> syn::LitInt {
-        syn::LitInt::new(input, syn::IntSuffix::None, proc_macro2::Span::call_site())
+        syn::LitInt::new(&input.to_string(), proc_macro2::Span::call_site())
     }
 
     #[test]
