@@ -3,9 +3,11 @@
 
 extern crate syntax;
 extern crate rustc_data_structures;
+extern crate rustc;
 
 pub mod ast_match;
 pub mod ast_match_rust_mini;
+pub mod hir_match;
 pub mod pattern_tree_rust;
 pub mod pattern_tree_rust_mini;
 pub mod pattern_tree_meta;
@@ -166,6 +168,17 @@ where
     }
 }
 
+impl<'cx, 'o, T, U, V, Z, Cx: Clone> IsMatch<'cx, 'o, Cx, Z> for Seq<'cx, 'o, T, Cx, U>
+where 
+    T: IsMatch<'cx, 'o, Cx, U>,
+    V: 'o + Reduce<Target=U>,
+    Z: Reduce<Target=[V]>,
+{
+    fn is_match(&self, cx: &'cx mut Cx, other: &'o Z) -> (bool, &'cx mut Cx) {
+        self.is_match(cx, other.reduce())
+    }
+}
+
 
 impl<'cx, 'o, T, U, V, Cx: Clone> IsMatch<'cx, 'o, Cx, Option<V>> for Opt<'cx, 'o, T, Cx, U>
 where 
@@ -203,7 +216,7 @@ where
 }
 
 pub trait Reduce {
-    type Target;
+    type Target: ?Sized;
 
     fn reduce(&self) -> &Self::Target;
 }
