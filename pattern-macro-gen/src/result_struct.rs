@@ -49,6 +49,13 @@ fn gen_tmp_result_struct(
         }
     ).collect::<Vec<_>>();
 
+    // items of the struct clone impl
+    let struct_clone_items = named_subpattern_types.iter().map(
+        |(k, _v)| {
+            quote!( #k: self.#k.clone())
+        }
+    ).collect::<Vec<_>>();
+
     // generate struct definition
     let struct_definition = gen_result_struct(name, &struct_def_items, false, module);
     
@@ -61,6 +68,16 @@ fn gen_tmp_result_struct(
             fn new() -> #name<'o, A> {
                 #name {
                     #(#struct_init_items),*
+                }
+            }
+        }
+
+        // impl clone() on the struct
+        impl<'o, A> Clone for #name<'o, A> 
+        where A: pattern::#module::MatchAssociations<'o> {
+            fn clone(&self) -> Self {
+                #name {
+                    #(#struct_clone_items),*
                 }
             }
         }
@@ -124,7 +141,7 @@ fn gen_result_struct(
 ) -> proc_macro2::TokenStream {
     let is_pub_tok = if is_pub { quote!( pub ) } else {quote!() };
     quote!(
-        #[derive(Debug, Clone)]
+        #[derive(Debug)]
         #is_pub_tok struct #name<'o, A>
         where A: pattern::#module::MatchAssociations<'o> {
             #(#items),*

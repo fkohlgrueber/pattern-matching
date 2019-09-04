@@ -191,7 +191,7 @@ pub fn gen_pattern_tree(input: TokenStream) -> TokenStream {
     let mut match_associations_struct = pattern_tree_def.iter().map(|x| {
         let name = &x.name;
         quote!(
-            type #name: 'o + std::fmt::Debug + Clone;
+            type #name: 'o + std::fmt::Debug;
         )
     }).collect::<Vec<_>>();
 
@@ -203,7 +203,7 @@ pub fn gen_pattern_tree(input: TokenStream) -> TokenStream {
     for ident in custom_assoc_types {
         match_associations_struct.push(
             quote!(
-                type #ident: 'o + std::fmt::Debug + Clone;
+                type #ident: 'o + std::fmt::Debug;
             )
         );
     }
