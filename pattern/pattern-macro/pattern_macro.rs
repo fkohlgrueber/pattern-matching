@@ -1,3 +1,5 @@
+//! This crate defines several pattern procedural macro. This crate is
+//! not supposed to be used directly. use the `pattern` crate instead.
 #![recursion_limit="512"]
 
 extern crate proc_macro;

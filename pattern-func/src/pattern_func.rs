@@ -1,3 +1,5 @@
+//! This crate contains the `pattern_func!()` macro that can be used to define 
+//! functions that can be used in patterns.
 #![recursion_limit="500"]
 extern crate proc_macro;
 use proc_macro::TokenStream;

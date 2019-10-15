@@ -1,3 +1,5 @@
+//! This crate contains the `gen_pattern_tree` procedural macro. This crate is
+//! not supposed to be used directly. use the `pattern-tree` crate instead.
 extern crate proc_macro;
 use quote::quote;
 use proc_macro::TokenStream;

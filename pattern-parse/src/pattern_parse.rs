@@ -1,3 +1,4 @@
+//! This crate contains a parser that recognizes Pattern Syntax.
 use syn::{Ident, Result, Token};
 use syn::parse::{Parse, ParseStream};
 use syn::token;

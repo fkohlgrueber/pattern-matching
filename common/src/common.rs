@@ -1,3 +1,4 @@
+//! This crate contains functionality needed in several pattern*-crates.
 use syn::{Ident, Result};
 use syn::parse::{Parse, ParseStream};
 use quote::{quote, ToTokens};

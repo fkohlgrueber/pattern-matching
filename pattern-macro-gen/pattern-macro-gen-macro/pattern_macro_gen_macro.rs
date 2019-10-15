@@ -1,3 +1,5 @@
+//! This crate contains the `gen_pattern_macro` procedural macro. This crate is
+//! not supposed to be used directly. use the `pattern-macro-gen` crate instead.
 #![recursion_limit="512"]
 extern crate proc_macro;
 use proc_macro::TokenStream;

@@ -1,3 +1,6 @@
+//! This crate contains the `derive_is_match_impl` macro that can be used to
+//! implement common pattern matching code conveniently. See the 
+//! `pattern-match` crate for examples.
 #![recursion_limit="500"]
 extern crate proc_macro;
 use quote::{quote, ToTokens};

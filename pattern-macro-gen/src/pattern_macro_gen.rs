@@ -1,3 +1,5 @@
+//! This crate provides the `gen_pattern_macro!()` macro which can be used to
+//! generate pattern macros. See the macro's documentation for details.
 #![recursion_limit="512"]
 #![feature(rustc_private)]
 use std::collections::HashMap;

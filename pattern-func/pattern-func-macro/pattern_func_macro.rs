@@ -1,3 +1,5 @@
+//! This crate contains the `pattern_func` procedural macro. This crate is
+//! not supposed to be used directly. use the `pattern-func` crate instead.
 #![recursion_limit="500"]
 extern crate proc_macro;
 use quote::quote;
