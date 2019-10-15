@@ -5,12 +5,9 @@ extern crate syntax;
 extern crate rustc_data_structures;
 
 pub mod ast_match;
-pub mod ast_match_rust_mini;
 pub mod pattern_tree_rust;
-pub mod pattern_tree_rust_mini;
 pub mod pattern_tree_meta;
 pub mod meta_match;
-pub mod dummy_ast_match;
 
 use itertools::Itertools;
 use itertools::repeat_n;

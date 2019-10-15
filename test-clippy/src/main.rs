@@ -13,7 +13,6 @@ use rustc_interface::interface;
 
 use pattern::pattern;
 use pattern::meta_pattern;
-use pattern::pattern_mini;
 use pattern_parse::parse_pattern_str;
 
 mod utils;
@@ -213,37 +212,6 @@ impl LintPass for MiniPattern {
     }
 }
 
-pattern_mini!{
-    pat_mini: Expr = 
-        If(
-            Lit(Bool(true)),
-            Block(
-                Semi(Lit(Bool(true)))? 
-                expr_or_semi(Lit(Char('x')))
-            ), 
-            Block_(Block(Expr(Lit(Char('y')))))
-        )
-}
-
-impl EarlyLintPass for MiniPattern {
-    fn check_expr(&mut self, cx: &EarlyContext, expr: &syntax::ast::Expr) {
-        
-        match pat_mini(expr) {
-            Some(_res) => {
-                //let inner = res.a;
-                //let outer = res.b;
-                cx.span_lint(
-                    MINI_PATTERN,
-                    expr.span,
-                    "This is a match for the mini pattern. Well Done too!",
-                );
-            },
-            None => ()
-        }
-        
-    }
-}
-
 declare_lint! {
     pub PRE_LINT,
     Forbid,
@@ -300,7 +268,6 @@ impl rustc_driver::Callbacks for ClippyCallbacks {
         ls.register_early_pass(None, false, false, box SimplePattern);
         ls.register_early_pass(None, false, false, box StringPattern);
         ls.register_early_pass(None, false, false, box CollapsibleIf);
-        ls.register_early_pass(None, false, false, box MiniPattern);
         ls.register_pre_expansion_pass(None, false, false, box PreLint);
 
         // Continue execution
